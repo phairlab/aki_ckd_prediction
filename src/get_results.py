@@ -20,20 +20,54 @@ from xgboost import XGBClassifier
 from datetime import datetime
 
 from alberta_score_helpers import *
+
 import os
 import pickle
 import shap
+import argparse
 
 random.seed(1202)
 np.random.seed(1202) 
 
-# which features to include for the final model
-hing_features = False
-alberta_features = False
-alberta_score = True
 
-perform_cv = False  # whether to perform cross-validation or train on the entire dataset
-perform_shapanalysis = True  # whether to perform SHAP analysis on the final model
+def fetch_args():
+	# Development dictionary - comment/uncomment this section as needed
+	args_dict = {
+	    'hing_features': False,
+	    'alberta_features': False,
+	    'alberta_score': True,
+	    'perform_cv': False,
+	    'perform_shapanalysis': True,
+		'modeltype': 'xgboost',  # 'xgboost' or 'transformer'
+	    # 'feature_selection': 'rfe',  # Options: 'rfe', 'none'
+	    # 'n_features_to_select': 240,  # Number of features to select with RFE
+	    # 'rfe_step': 0.1,  # Step size for RFE
+	    # 'random_state': 1202,  # Random seed for reproducibility
+	}
+	
+	class Args:
+	    def __init__(self, args_dict):
+	        for k, v in args_dict.items():
+	            setattr(self, k, v)
+	
+	return Args(args_dict)
+	
+	# # Command line argument parsing
+	# parser = argparse.ArgumentParser(description='Run AKI-CKD prediction model')
+	# parser.add_argument('--hing_features', action='store_true', default=False
+	# 					help='Include features engineered by Hing')
+	# parser.add_argument('--alberta_features', action='store_true', default=True, 
+	# 					help='Include Alberta score component features')
+	# parser.add_argument('--alberta_score', action='store_true', default=False,
+	# 					help='Include Alberta score as a feature')
+	# parser.add_argument('--perform_cv', action='store_true', default=True
+	# 					help='Perform cross-validation step')
+	# parser.add_argument('--perform_shapanalysis', action='store_true', default=True,
+	# 					help='Perform SHAP analysis on the final model')
+	
+	# return parser.parse_args()
+
+args = fetch_args()
 
 # --------------------------------------------------------
 # -*- load in the features.csv file -*-
@@ -51,7 +85,7 @@ features_df['discharge_date'] = pd.to_datetime(features_df['discharge_date'])
 # drop patients who died before they were discharged
 features_df.drop(features_df[features_df['death_date'] <= features_df['discharge_date']].index, inplace=True)
 
-if hing_features:
+if args.hing_features:
     features_df['admit_to_stage1'] = (pd.to_datetime(features_df['stage1_date']) - pd.to_datetime(features_df['admit_date'])).dt.days
     features_df['stage1_to_discharge'] = (pd.to_datetime(features_df['discharge_date']) - pd.to_datetime(features_df['stage1_date'])).dt.days
     features_df['admit_to_stage2'] = (pd.to_datetime(features_df['stage2_date']) - pd.to_datetime(features_df['admit_date'])).dt.days
@@ -102,7 +136,7 @@ alberta_df["highest_stage_points"] = alberta_df.highest_stage_raw.map(stage_mapp
 
 # baseline creatinine
 alberta_df['baseline_creatinine_raw'] = alberta_df.apply(
-    lambda row: get_baseline_creatinine(row['patient_id'], all_labs_df, row['admit_date']), axis=1
+    lambda row: get_baseline_creatinine(row['patient_id'], all_labs_df, row['admit_date'], row['discharge_date']), axis=1
 )
 alberta_df["baseline_creatinine_points"] = alberta_df.baseline_creatinine_raw.map(baseline_creatinine_mapping)
 
@@ -124,8 +158,14 @@ print("done calculating alberta score points")
 # --------------------------------------------------------
 # -*- drop patients who don't have a baseline creatinine and discharge creatinine
 
+print(alberta_df.shape)
+
 alberta_df = alberta_df.dropna(subset=['baseline_creatinine_raw'])
 alberta_df = alberta_df.dropna(subset=['discharge_creatinine_raw'])
+
+print(alberta_df.shape)
+
+assert False
 
 print("done dropping patients without baseline and discharge creatinine")
 
@@ -178,11 +218,11 @@ alberta_points_features = alberta_df[[
     "albuminuria_status_points"
 ]]
 
-if hing_features:  # use hing's features
-    if alberta_features:
+if args.hing_features:  # use hing's features
+    if args.alberta_features:
         # add the alberta score features to the feature set
         features_df = pd.concat([features_df, alberta_points_features], axis=1)
-    if alberta_score:
+    if args.alberta_score:
         # add the alberta score to the feature set
         features_df = pd.concat([features_df, alberta_score_feature], axis=1)
 
@@ -198,10 +238,10 @@ if hing_features:  # use hing's features
     features_used = dataframe_values[:, feature_columns] # (4694, 467)
     feature_names = features_df.dtypes.index[feature_columns]
 
-elif alberta_features:
+elif args.alberta_features:
     features_df = alberta_points_features.copy()  # use only the alberta points features
     
-    if alberta_score:
+    if args.alberta_score:
         # add the alberta score to the feature set
         features_df = pd.concat([features_df, alberta_score_feature], axis=1)
 
@@ -225,9 +265,9 @@ print("done creating features_used, feature_names, attributes_used")
 # Define the date and feature type for the subfolder name
 current_date = datetime.now().strftime("%Y%m%d")
 features_list = []
-if hing_features: features_list.append("hing")
-if alberta_features: features_list.append("abpoints")
-if alberta_score: features_list.append("abscore")
+if args.hing_features: features_list.append("hing")
+if args.alberta_features: features_list.append("abpoints")
+if args.alberta_score: features_list.append("abscore")
 extra = ""
 
 features_string = "-".join(features_list)
@@ -263,7 +303,7 @@ best_threshold_prc = 0  # Sum of best thresholds for PRC curve
 cv = KFold(n_splits=10, shuffle=True, random_state=1202)
 skip = 0
 
-if perform_cv:
+if args.perform_cv:
 	# Perform cross-validation
 	for i, (train, test) in enumerate(cv.split(features_used, attributes_used)):
 		if i < skip:  # Skip the first skip folds (for if training gets halted)
@@ -284,7 +324,7 @@ if perform_cv:
 
 		feature_names_fold = feature_names
 
-		if hing_features:  # perform RFE on the training set
+		if args.hing_features:  # perform RFE on the training set
 			rfe = RFE(estimator=classifier, n_features_to_select=240, step=0.1, verbose=1)  # 381 seconds
 			rfe = rfe.fit(X_train, y_train) 
 
@@ -396,7 +436,7 @@ if perform_cv:
 	print(f"Mean ROC AUC: {np.mean(aucs1):.4f}")
 	print(f"Mean PRC AUC: {np.mean(aucs2):.4f}")
 
-# --------------------------------------------------------
+
 # --------------------------------------------------------
 # -*- train model on entire dataset and save feature importances -*-
 
@@ -411,7 +451,7 @@ y_full = attributes_used.astype('int8')
 full_classifier = XGBClassifier(random_state=1202)
 
 # Apply RFE if using Hing features
-if hing_features:
+if args.hing_features:
 	print("Performing RFE on the entire dataset...")
 	rfe_full = RFE(estimator=full_classifier, n_features_to_select=240, step=0.1, verbose=1)
 	rfe_full.fit(X_full, y_full)
@@ -437,7 +477,7 @@ with open(f"experiments/{subfolder_name}/full_model.pkl", 'wb') as f:
 	pickle.dump(full_classifier, f)
 
 # If RFE was used, also save the RFE object
-if hing_features:
+if args.hing_features:
 	with open(f"experiments/{subfolder_name}/full_model_rfe.pkl", 'wb') as f:
 		pickle.dump(rfe_full, f)
 
@@ -447,11 +487,11 @@ print(f"Model and feature importances saved to experiments/{subfolder_name}/")
 # --------------------------------------------------------
 # -*- perform SHAP analysis on the full model -*-
 
-if perform_shapanalysis:
+if args.perform_shapanalysis:
 	print("Performing SHAP analysis on the full model...")
 	
 	# Create a DataFrame for SHAP analysis
-	if hing_features:
+	if args.hing_features:
 		# Use the reduced feature set if RFE was applied
 		shap_df = pd.DataFrame(X_full, columns=feature_names_full)
 	else:

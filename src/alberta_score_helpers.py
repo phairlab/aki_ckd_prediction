@@ -94,7 +94,7 @@ def albuminuria_status_mapping(albuminuria_status):
 
 
 # calculate baseline SCr, mg/dL
-def get_baseline_creatinine(patient_id, all_labs_df, index_admit_date):
+def get_baseline_creatinine(patient_id, all_labs_df, index_admit_date, index_discharge_date=None):
     """
     Get the baseline creatinine value for a patient.
     
@@ -132,7 +132,36 @@ def get_baseline_creatinine(patient_id, all_labs_df, index_admit_date):
     
     # If no labs in window, return None
     if window_labs.empty:
-        return None
+        # Make sure discharge date is available
+        if index_discharge_date is None:
+            return None
+            
+        # Look for in-hospital creatinine values
+        inpatient_labs = creatinine_labs[(creatinine_labs['test_date'] >= index_admit_date) & 
+                                        (creatinine_labs['test_date'] <= index_discharge_date)]
+        
+        # If no in-hospital labs either, return None
+        if inpatient_labs.empty:
+            return None
+            
+        # Process all values to numeric
+        numeric_values = []
+        for _, row in inpatient_labs.iterrows():
+            try:
+                value = float(row['TEST_RSLT'])
+                # Convert to mg/dL if in umol/L
+                if 'umol/L' in row['TEST_UOFM']:
+                    value = value / 88.4
+                numeric_values.append(value)
+            except (ValueError, TypeError):
+                continue
+        
+        # If no valid numeric values, return None
+        if not numeric_values:
+            return None
+            
+        # Return the lowest in-hospital creatinine as baseline
+        return min(numeric_values)
     
     # Get the most recent test before admission
     most_recent = window_labs.sort_values('test_date', ascending=False).iloc[0]
