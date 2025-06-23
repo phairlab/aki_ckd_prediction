@@ -130,7 +130,7 @@ def get_baseline_creatinine(patient_id, all_labs_df, index_admit_date, index_dis
     window_labs = creatinine_labs[(creatinine_labs['test_date'] >= lower_bound) & 
                                   (creatinine_labs['test_date'] <= upper_bound)]
     
-    # If no labs in window, return None
+    # If no labs in window, look at the hospitalization
     if window_labs.empty:
         # Make sure discharge date is available
         if index_discharge_date is None:
@@ -163,22 +163,24 @@ def get_baseline_creatinine(patient_id, all_labs_df, index_admit_date, index_dis
         # Return the lowest in-hospital creatinine as baseline
         return min(numeric_values)
     
-    # Get the most recent test before admission
-    most_recent = window_labs.sort_values('test_date', ascending=False).iloc[0]
-
-    try:
-        # Convert the creatinine value to mg/dL if it's in umol/L
-        if 'umol/L' in most_recent['TEST_UOFM']:
-            most_recent['TEST_RSLT'] = float(most_recent['TEST_RSLT']) / 88.4  # Convert to mg/dL
-        elif 'mg/dL' in most_recent['TEST_UOFM']:
-            most_recent['TEST_RSLT'] = float(most_recent['TEST_RSLT'])
-        else:
-            return "Invalid unit"
-    except ValueError:
-        return "Invalid test result"
-
-    # Return the creatinine value
-    return most_recent['TEST_RSLT']
+    # Sort window labs by test date (most recent first)
+    sorted_window_labs = window_labs.sort_values('test_date', ascending=False)
+    
+    # Iterate through labs to find the first valid one
+    for _, row in sorted_window_labs.iterrows():
+        try:
+            result_value = float(row['TEST_RSLT'])
+            # Convert to mg/dL if in umol/L
+            if 'umol/L' in row['TEST_UOFM']:
+                result_value = result_value / 88.4  # Convert to mg/dL
+            # Return the first valid result
+            return result_value
+        except (ValueError, TypeError):
+            # Skip invalid results
+            continue
+    
+    # If no valid results found, return None
+    return None
 
 
 # calculate discharge SCr, mg/dL
@@ -234,6 +236,70 @@ def get_discharge_creatinine(patient_id, all_labs_df, index_admit_date, index_di
 
     # Return the creatinine value
     return most_recent['TEST_RSLT']
+
+
+
+# calculate peak SCr, mg/dL
+def get_peak_creatinine(patient_id, all_labs_df, index_admit_date, index_discharge_date):
+    """
+    Get the discharge creatinine value for a patient.
+    
+    This function finds the most recent inpatient creatinine measurement 
+    after hospital admission and before hospital discharge.
+    
+    Parameters:
+    -----------
+    patient_id : int or str
+        The unique identifier for the patient
+    all_labs_df : pandas.DataFrame
+        DataFrame containing lab test results
+    index_discharge_date : datetime
+        The discharge date for the index hospitalization
+    
+    Returns:
+    --------
+    float
+        The peak creatinine value in mg/dL
+    """
+    # Filter labs for the specific patient
+    patient_labs = all_labs_df[all_labs_df['id'] == patient_id]
+    
+    # Filter for creatinine tests only
+    creatinine_labs = patient_labs[patient_labs['TEST_NM'].str.contains('Creatinine', case=False) & 
+                                   ~patient_labs['TEST_NM'].str.contains('Ratio|Protein|Albumin', case=False)]
+    
+    # Filter for tests on or after admission and before discharge
+    discharge_labs = creatinine_labs[(creatinine_labs['test_date'] >= index_admit_date) & 
+                                     (creatinine_labs['test_date'] <= index_discharge_date)]
+    
+    # If no labs before discharge, return None
+    if discharge_labs.empty:
+        return None
+    
+    # Find the highest creatinine value before discharge
+    # First, convert all values to mg/dL
+    processed_values = []
+    
+    for _, row in discharge_labs.iterrows():
+        try:
+            result_value = float(row['TEST_RSLT'])
+            # Convert to mg/dL if in umol/L
+            if 'umol/L' in row['TEST_UOFM']:
+                result_value = result_value / 88.4
+            processed_values.append((row, result_value))
+        except (ValueError, TypeError):
+            continue
+    
+    # If no valid values, return None
+    if not processed_values:
+        return None
+    
+    # Find the row with the highest value
+    highest_row, highest_value = max(processed_values, key=lambda x: x[1])
+    
+    # Return the highest creatinine value
+    return highest_value
+
 
 
 # calculate albuminuria values
