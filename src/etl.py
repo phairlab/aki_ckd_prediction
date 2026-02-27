@@ -1,4 +1,13 @@
+import pandas as pd
+import numpy as np
+import os
 
+# Print the current working directory
+print(f"Current working directory: {os.getcwd()}")
+
+# Change directory to ../../Hing
+os.chdir("Hing")
+print(f"Changed directory to: {os.getcwd()}")
 
 # ETL for AKI->CKD project, 2023
 
@@ -18,43 +27,152 @@ cohort['death_date'] = pd.to_datetime(cohort['death_date'], format='%Y-%m-%d')
 cohort = cohort[['patient_id', 'admit_date', 'discharge_date', 'sex', 'age_admit', 'total_los', 'stage1', 'stage1_date',
 	'stage1_creatinine', 'stage2', 'stage2_date', 'stage2_creatinine', 'stage3', 'stage3_date', 'stage3_creatinine',
 	'highest_stage', 'death_date', 'ckd_stage45', 'stroke_after', 'chf_after', 'mi_after']] # [4694 rows x 21 columns]
-cohort.to_csv('cohort.csv', index=False)
+cohort.to_csv('/data/kidney/Sacha/newdata/cohort.csv', index=False)
 
 # -----------------
 # in-hosp vars
 
-def goal(g):
-	return 'perioperative' if 'Perioperative' in g else 'acute' if 'Acute' in g else 'community' if 'Community' in g\
-else 'transition' if 'Transition' in g else 'alc' if 'ACL' in g else 'intensive' if 'Intensive' in g else 'mobility' if\
-'Mobility' in g else 'assessment' if 'Assessment' in g else 'waiting' if 'Waiting' in g else np.nan if g == '?' else 'others' 
+def categorize_goals_of_care(goal_text):
+	"""
+	Categorize goals of care text into standardized categories.
+	
+	Args:
+		goal_text (str): The raw goals of care text
+		
+	Returns:
+		str: Categorized goal of care
+	"""
+	if goal_text is None or goal_text == '?':
+		return np.nan
+	
+	goal_mapping = {
+		'Perioperative': 'perioperative',
+		'Acute': 'acute',
+		'Community': 'community',
+		'Transition': 'transition',
+		'ACL': 'alc',
+		'Intensive': 'intensive',
+		'Mobility': 'mobility',
+		'Assessment': 'assessment',
+		'Waiting': 'waiting'
+	}
+	
+	for key, value in goal_mapping.items():
+		if key in goal_text:
+			return value
+	
+	return 'others'
 
-service_list = ['General Internal Medicine', 'Cardiac Surgery', 'Emergency Medicine', 'Nephrology', 'Neurology', 'Transplant',
-	'Cardiology', 'Gastroenterology', 'Neurosurgery', 'Surgery', 'Family Medicine', 'Critical Care', 'Trauma', 'Urology',
-	'General Surgery', 'Orthopedics', 'Specialized Geriatrics', 'Otolaryngology', 'Stroke', 'Ear Nose and Throat', 'ICU', 
-	'Transplant', 'Plastic Surgery', 'Hematology']
+# List of common medical services to extract from admission_services column
+SERVICE_LIST = [
+	'General Internal Medicine', 'Cardiac Surgery', 'Emergency Medicine', 
+	'Nephrology', 'Neurology', 'Transplant', 'Cardiology', 'Gastroenterology', 
+	'Neurosurgery', 'Surgery', 'Family Medicine', 'Critical Care', 'Trauma', 
+	'Urology', 'General Surgery', 'Orthopedics', 'Specialized Geriatrics', 
+	'Otolaryngology', 'Stroke', 'Ear Nose and Throat', 'ICU', 'Transplant', 
+	'Plastic Surgery', 'Hematology'
+]
 
-index_vars = pd.read_csv('in-hosp vars.csv') # [4694 rows x 23 columns]
-# ['AdmitDt', 'DischDt', 'cardiac_surgery', 'ami', 'chf', 'icu_inhosp', 'insulin', 'beta_blocker', 'covid_test_result', 'smoke', 'goals_of_care', 'admission_services', 'foley_catheter', 'OT_assessment', 'renal_ultralsound', 'PT_assessment', 'angiogram', 'sepsis', 'obstructive_uropathy', 'Cardiac_catheterization', 'Mechanical_ventilation', 'dialysis', 'id']
-index_vars.rename(columns={'id':'patient_id', 'icu_inhosp':'icu', 'Cardiac_catheterization':'cardiac_catheterization',
-	'Mechanical_ventilation':'mechanical_ventilation', 'OT_assessment':'ot_assessment', 'PT_assessment':'pt_assessment'}, inplace=True)
-index_vars['goals_of_care'].fillna('?', inplace=True)
-index_vars['goals_of_care'] = index_vars['goals_of_care'].apply(goal)
-for g in ['acute', 'community', 'transition', 'others', 'intensive', 'mobility', 'assessment', 'perioperative']:
-	index_vars['goal_' + g] = (index_vars['goals_of_care'] == g).astype('int')
+# Load and process in-hospital variables
+index_vars = pd.read_csv('in-hosp vars.csv')  # [4694 rows x 23 columns]
+print(f"Columns in index_vars before processing: {index_vars.columns.tolist()}")
 
-index_vars['covid_test_result'] = (index_vars['covid_test_result'] == 'Positive').astype('int')
-index_vars = index_vars[['patient_id', 'icu', 'goal_acute', 'goal_community', 'goal_transition', 'goal_others', 'goal_intensive',
-	'goal_mobility', 'goal_assessment', 'goal_perioperative', 'cardiac_surgery', 'insulin', 'beta_blocker', 
-	'covid_test_result', 'smoke', 'cardiac_catheterization', 'ami', 'chf', 'dialysis', 'mechanical_ventilation',
-	'renal_ultralsound', 'angiogram', 'foley_catheter', 'ot_assessment', 'pt_assessment', 'obstructive_uropathy', 'sepsis',
-	'admission_services']]
-for service in service_list:
-	index_vars[service.lower().replace(' ', '_')] = np.where(index_vars['admission_services']==service, 1, 0)
+# Standardize column names to lowercase and snake_case
+column_rename_map = {
+	'id': 'patient_id', 
+	# 'icu_inhosp': 'icu', 
+	'Cardiac_catheterization': 'cardiac_catheterization',
+	'Mechanical_ventilation': 'mechanical_ventilation', 
+	'OT_assessment': 'ot_assessment', 
+	'PT_assessment': 'pt_assessment'
+}
+index_vars.rename(columns=column_rename_map, inplace=True)
 
-index_vars.drop('admission_services', inplace=True, axis=1) # [4694 rows x 48 columns]
+# Process goals of care
+index_vars['goals_of_care'] = index_vars['goals_of_care'].fillna('?')
+index_vars['goals_of_care'] = index_vars['goals_of_care'].apply(categorize_goals_of_care)
+
+# Create binary columns for each goal of care category
+goal_categories = ['acute', 'community', 'transition', 'others', 'intensive', 
+				  'mobility', 'assessment', 'perioperative']
+for category in goal_categories:
+	index_vars[f'goal_{category}'] = (index_vars['goals_of_care'] == category).astype(int)
+
+# Convert COVID test result to binary
+index_vars['covid_test_result'] = (index_vars['covid_test_result'] == 'Positive').astype(int)
+
+# Create binary columns for each medical service
+for service in SERVICE_LIST:
+	service_col = service.lower().replace(' ', '_')
+	print(service, service_col)
+	# Case-insensitive partial match using str.contains
+	index_vars[service_col] = index_vars['admission_services'].str.lower().str.contains(service.lower(), na=False).astype(int)
+
+# Extract unique medical services by splitting on commas
+all_services = []
+for services_str in index_vars['admission_services'].dropna():
+	services = [service.strip() for service in services_str.split(',')]
+	all_services.extend(services)
+
+# Get unique services and sort them
+unique_services = sorted(set(all_services))
+
+# Print unique services
+print("\nUnique Medical Services:")
+for service in unique_services:
+	print(f"  - {service}")
+
+# Optionally save to file
+with open('unique_medical_services.txt', 'w') as f:
+	for service in unique_services:
+		f.write(f"{service}\n")
+
+print(f"\nTotal unique medical services: {len(unique_services)}")
+
+# Calculate percentage of people who are positive for dialysis
+dialysis_count = index_vars['dialysis'].sum()
+total_count = len(index_vars)
+dialysis_percentage = (dialysis_count / total_count) * 100
+
+print(f"Dialysis positive: {dialysis_count} patients ({dialysis_percentage:.2f}%)")
+
+# assert False
+
+# Print diagnostic information
+print("Service column statistics:")
+for service in SERVICE_LIST:
+	service_col = service.lower().replace(' ', '_')
+	count = index_vars[service_col].sum()
+	print(f"  {service_col}: {count} patients")
+
+print(f"ICU patients: {index_vars['icu'].sum()}")
+
+
+# Select and reorder columns
+columns_to_keep = ['patient_id', 'icu_inhosp', 'icu'] + \
+				  [f'goal_{cat}' for cat in goal_categories] + \
+				  ['cardiac_surgery', 'insulin', 'beta_blocker', 'covid_test_result', 
+				   'smoke', 'cardiac_catheterization', 'ami', 'chf', 'dialysis', 
+				   'mechanical_ventilation', 'renal_ultralsound', 'angiogram', 
+				   'foley_catheter', 'ot_assessment', 'pt_assessment', 
+				   'obstructive_uropathy', 'sepsis', 'admission_services'] + \
+				  [service.lower().replace(' ', '_') for service in SERVICE_LIST]
+
+index_vars = index_vars[columns_to_keep]
+
+# Add prefix to all columns except patient_id
 index_vars = index_vars.add_prefix('index_vars:')
-index_vars.rename(columns={'index_vars:patient_id' : 'patient_id'}, inplace=True)
-index_vars.to_csv('index_vars.csv', index=False)
+index_vars.rename(columns={'index_vars:patient_id': 'patient_id'}, inplace=True)
+
+# Final verification
+print(f"Final ICU patients: {index_vars['index_vars:icu'].sum()}")
+print(f"Final dataframe shape: {index_vars.shape}")
+
+# Save processed data
+index_vars.to_csv('/data/kidney/Sacha/newdata/index_vars.csv', index=False)
+
+
+# assert False
 
 # -----------------
 # in-hosp flowsheet records
@@ -100,7 +218,7 @@ index_records_max = pd.crosstab(index = [index_records['patient_id']], columns =
 index_records_crosstab = index_records_count.merge(index_records_mean, on='patient_id', how='left')
 index_records_crosstab = index_records_crosstab.merge(index_records_min, on='patient_id', how='left')
 index_records_crosstab = index_records_crosstab.merge(index_records_max, on='patient_id', how='left')
-index_records_crosstab.to_csv('index_records_crosstab.csv')  # No index=False
+index_records_crosstab.to_csv('/data/kidney/Sacha/newdata/index_records_crosstab.csv')  # No index=False
 index_records_crosstab = pd.read_csv('index_records_crosstab.csv') # [3844 rows x 42 columns]
 # ['patient_id', 'records_count:aortic_heart_rate', 'records_count:arterial_line_bp', 'records_count:aware', 'records_count:bar_bmi', 'records_count:bmi', 'records_count:bp', 'records_count:heart_rate_ecg', 'records_count:max_heart_rate', 'records_count:others', 'records_count:oxygen_therapy', etc. for mean, min, max. 
 
@@ -128,7 +246,7 @@ index_consultations['consult_count'] = 'consult_count:' + index_consultations['c
 index_consultations_crosstab = pd.crosstab(index = [index_consultations['patient_id']], columns = index_consultations['consult_count'], 
 	values = index_consultations['consultation'], aggfunc='count')
 trim(index_consultations_crosstab, 199/200)
-index_consultations_crosstab.to_csv('index_consultations_crosstab.csv')  # No index=False
+index_consultations_crosstab.to_csv('/data/kidney/Sacha/newdata/index_consultations_crosstab.csv')  # No index=False
 index_consultations_crosstab = pd.read_csv('index_consultations_crosstab.csv') # [3468 rows x 57 columns] originally 87 columns
 # 'patient_id', 'consult_count:acute pain services', 'consult_count:adult acute pain services', 'consult_count:anesthesiology', 'consult_count:cardiac surgery', 'consult_count:cardiac surgery navigator', 'consult_count:cardiology', etc.
 
@@ -160,7 +278,7 @@ index_labs_max = pd.crosstab(index = [index_labs['patient_id']], columns = index
 index_labs_crosstab = index_labs_count.merge(index_labs_mean, on='patient_id', how='left')
 index_labs_crosstab = index_labs_crosstab.merge(index_labs_min, on='patient_id', how='left')
 index_labs_crosstab = index_labs_crosstab.merge(index_labs_max, on='patient_id', how='left')
-index_labs_crosstab.to_csv('index_labs_crosstab.csv')  # No index=False
+index_labs_crosstab.to_csv('/data/kidney/Sacha/newdata/index_labs_crosstab.csv')  # No index=False
 index_labs_crosstab = pd.read_csv('index_labs_crosstab.csv') # [4693 rows x 118 columns]
 # ['patient_id', 'labs_count:Albumin', 'labs_count:Albumin / Creatinine Ratio', 'labs_count:Bicarbonate, Arterial', 'labs_count:Bicarbonate, Bld', 'labs_count:Bicarbonate, Venous', 'labs_count:C Reactive Protein Quantitative', 'labs_count:C-Reactive Protein', 'labs_count:Cholesterol', 'labs_count:Cholesterol, Total', 'labs_count:Creatinine', labs_count:Creatinine Serum', 'labs_count:GLUCOSE RANDOM', 'labs_count:Glucose', 'labs_count:Glucose Meter', 'labs_count:Glucose, Bld', 'labs_count:Glucose, Random', 'labs_count:Glucose, random', 'labs_count:HCO3', 'labs_count:HCO3,ARTERIAL', 'labs_count:HCO3,VENOUS', 'labs_count:Hemoglobin', 'labs_count:Hemoglobin, Arterial', 'labs_count:Hemoglobin, Venous', 'labs_count:Phosphate', 'labs_count:Phosphorus', 'labs_count:Protein / Creatinine Ratio, Urine', 'labs_count:Protein Urine UA', 'labs_count:Urate', 'labs_count:eGRF', then labs_mean and so on.
 
@@ -177,7 +295,7 @@ pre_vars = pre_vars[['patient_id', 'chf', 'pvd', 'pud', 'mild_liver_disease', 'c
 pre_vars = pre_vars.add_prefix('pre-index_vars:')
 pre_vars.rename(columns={'pre-index_vars:patient_id' : 'patient_id'}, inplace=True) # [4694 rows x 11 columns]
 # ['patient_id', 'pre_vars:chf_pre', 'pre_vars:pvd_pre', 'pre_vars:pud_pre', 'pre_vars:mild_liver_disease_pre', 'pre_vars:cancer_pre', 'pre_vars:mild_severe_liver_disease_pre', 'pre_vars:hypertension_pre', 'pre_vars:diabetes_pre', 'pre_vars:gout_pre', 'pre_vars:covid_test_result_pre']
-pre_vars.to_csv('pre_vars.csv', index=False)
+pre_vars.to_csv('/data/kidney/Sacha/newdata/pre_vars.csv', index=False)
 
 # -----------------
 # pre-hosp labs
@@ -207,7 +325,7 @@ pre_labs_max = pd.crosstab(index = [pre_labs['patient_id']], columns = pre_labs[
 pre_labs_crosstab = pre_labs_count.merge(pre_labs_mean, on='patient_id', how='left')
 pre_labs_crosstab = pre_labs_crosstab.merge(pre_labs_min, on='patient_id', how='left')
 pre_labs_crosstab = pre_labs_crosstab.merge(pre_labs_max, on='patient_id', how='left')
-pre_labs_crosstab.to_csv('pre_labs_crosstab.csv')  # No index=False
+pre_labs_crosstab.to_csv('/data/kidney/Sacha/newdata/pre_labs_crosstab.csv')  # No index=False
 pre_labs_crosstab = pd.read_csv('pre_labs_crosstab.csv') # [4242 rows x 177 columns]
 # ['patient_id', 'pre_index_labs_count:ALBUMIN/CREATININE RATIO,URINE', 'pre_index_labs_count:Albumin', 'pre_index_labs_count:Albumin / Creatinine Ratio', etc., then labs_mean and so on.
 
@@ -236,7 +354,7 @@ pre_bmi_max = pd.crosstab(index = [pre_bmi['patient_id']], columns = pre_bmi['pr
 pre_bmi_crosstab = pre_bmi_count.merge(pre_bmi_mean, on='patient_id', how='left')
 pre_bmi_crosstab = pre_bmi_crosstab.merge(pre_bmi_min, on='patient_id', how='left')
 pre_bmi_crosstab = pre_bmi_crosstab.merge(pre_bmi_max, on='patient_id', how='left')
-pre_bmi_crosstab.to_csv('pre_bmi_crosstab.csv')  # No index=False
+pre_bmi_crosstab.to_csv('/data/kidney/Sacha/newdata/pre_bmi_crosstab.csv')  # No index=False
 pre_bmi_crosstab = pd.read_csv('pre_bmi_crosstab.csv') # [566 rows x 9 columns]
 # ['patient_id', 'pre_count:bar_bmi', 'pre_count:bmi', 'pre_mean:bar_bmi', 'pre_mean:bmi', 'pre_min:bar_bmi', 'pre_min:bmi', pre_max:bar_bmi', 'pre_max:bmi']
 
@@ -252,18 +370,18 @@ pre_medication = pre_medication[['patient_id', 'aminoglycoside', 'amphotericin_b
 	'ppi', 'sglt2', 'vancomycin']]
 pre_medication = pre_medication.add_prefix('pre-index_medication:')
 pre_medication.rename(columns={'pre-index_medication:patient_id' : 'patient_id'}, inplace=True)
-pre_medication.to_csv('pre_medication.csv', index=False)
+pre_medication.to_csv('/data/kidney/Sacha/newdata/pre_medication.csv', index=False)
 
 #==================
-cohort = pd.read_csv('cohort.csv')
-index_vars = pd.read_csv('index_vars.csv')
-index_records_crosstab = pd.read_csv('index_records_crosstab.csv')
-index_consultations_crosstab = pd.read_csv('index_consultations_crosstab.csv')
-index_labs_crosstab = pd.read_csv('index_labs_crosstab.csv')
-pre_vars = pd.read_csv('pre_vars.csv')
-pre_labs_crosstab = pd.read_csv('pre_labs_crosstab.csv')
-pre_bmi_crosstab = pd.read_csv('pre_bmi_crosstab.csv')
-pre_medication = pd.read_csv('pre_medication.csv')
+cohort = pd.read_csv('/data/kidney/Sacha/newdata/cohort.csv')
+index_vars = pd.read_csv('/data/kidney/Sacha/newdata/index_vars.csv')
+index_records_crosstab = pd.read_csv('/data/kidney/Sacha/newdata/index_records_crosstab.csv')
+index_consultations_crosstab = pd.read_csv('/data/kidney/Sacha/newdata/index_consultations_crosstab.csv')
+index_labs_crosstab = pd.read_csv('/data/kidney/Sacha/newdata/index_labs_crosstab.csv')
+pre_vars = pd.read_csv('/data/kidney/Sacha/newdata/pre_vars.csv')
+pre_labs_crosstab = pd.read_csv('/data/kidney/Sacha/newdata/pre_labs_crosstab.csv')
+pre_bmi_crosstab = pd.read_csv('/data/kidney/Sacha/newdata/pre_bmi_crosstab.csv')
+pre_medication = pd.read_csv('/data/kidney/Sacha/newdata/pre_medication.csv')
 features = cohort.merge(index_vars, on='patient_id', how='outer')
 features = features.merge(index_records_crosstab, on='patient_id', how='outer')
 features = features.merge(index_consultations_crosstab, on='patient_id', how='outer')
@@ -272,4 +390,4 @@ features = features.merge(pre_vars, on='patient_id', how='outer')
 features = features.merge(pre_labs_crosstab, on='patient_id', how='outer')
 features = features.merge(pre_bmi_crosstab, on='patient_id', how='outer')
 features = features.merge(pre_medication, on='patient_id', how='outer')
-features.to_csv('features.csv', index=False) # [4694 rows x 481 columns]
+features.to_csv('/data/kidney/Sacha/newdata/features.csv', index=False) # [4694 rows x 481 columns]

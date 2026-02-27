@@ -1,3 +1,25 @@
+"""
+XGBoost Model Training and Evaluation Script for AKI-CKD Prediction
+
+This script trains XGBoost models for predicting chronic kidney disease (CKD) outcomes
+following acute kidney injury (AKI). It includes:
+
+- Cross-validation with model saving for each fold
+- Feature selection using Recursive Feature Elimination (RFE)
+- SHAP analysis for model interpretability
+- Comprehensive performance metrics and visualizations
+
+For each fold in cross-validation, the following files are saved:
+- fold_X_model.pkl: Trained XGBoost model
+- fold_X_scaler.pkl: StandardScaler used for feature normalization
+- fold_X_rfe.pkl: RFE object (if feature selection is enabled)
+- fold_X.json: Performance metrics for the fold
+- fold_X_feature_importances.txt: Feature importance rankings
+- fold_X_predictions.json: Test set predictions (y_true, y_pred, y_proba, test_indices)
+
+The full model trained on the entire dataset is also saved along with SHAP analysis results.
+"""
+
 import os
 import re
 import random
@@ -6,7 +28,6 @@ import time
 import json
 import pickle
 import argparse
-import shap
 from datetime import datetime
 
 import pandas as pd
@@ -31,6 +52,7 @@ from xgboost import XGBClassifier
 # from alberta_score_helpers import *
 from data_preprocessing import *
 from transformer_model_helpers import *
+from shap_analysis import perform_shap_analysis_tree, regenerate_shap_plots_tree, load_shap_values
 
 random.seed(1202)
 np.random.seed(1202) 
@@ -39,268 +61,122 @@ np.random.seed(1202)
 def fetch_args():
 	# Development dictionary - comment/uncomment this section as needed
 	args_dict = {
-	    'hing_features': True,
-	    'alberta_features': False,
-	    'alberta_score': False,
+		'hing_features': False,
+		'alberta_features_points': False,
+		'alberta_features_raw': True,
+		'alberta_score': False,
 		'model_type': 'xgboost',  # 'xgboost' or 'logreg'
-	    'perform_cv': True,
-	    'perform_shapanalysis': True,
+		'perform_cv': True,
+		'perform_shapanalysis': True,
 		'target': 'ckd',  # 'ckd' or 'ckdordeath
-	    'feature_selection': True, 
-	    # 'n_features_to_select': 240,  # Number of features to select with RFE
-	    # 'rfe_step': 0.1,  # Step size for RFE
-	    # 'random_state': 1202,  # Random seed for reproducibility
+		'feature_selection': True, 
+		'n_features_to_select': 100,  # Number of features to select with RFE
+		'rfe_step': 0.1,  # Step size for RFE
+		'random_state': 1202,  # Random seed for reproducibility
+		'load_from_experiment': "/data/kidney/Sacha/aki_ckd_prediction/experiments/20250714_xgboost_abpoints__fold_results",
+
 	}
 	
 	class Args:
-	    def __init__(self, args_dict):
-	        for k, v in args_dict.items():
-	            setattr(self, k, v)
+		def __init__(self, args_dict):
+			for k, v in args_dict.items():
+				setattr(self, k, v)
 	
 	return Args(args_dict)
 	
 	# # Command line argument parsing
 	# parser = argparse.ArgumentParser(description='Run AKI-CKD prediction model')
-	# parser.add_argument('--hing_features', action='store_true', default=False
-	# 					help='Include features engineered by Hing')
-	# parser.add_argument('--alberta_features', action='store_true', default=True, 
-	# 					help='Include Alberta score component features')
-	# parser.add_argument('--alberta_score', action='store_true', default=False,
-	# 					help='Include Alberta score as a feature')
-	# parser.add_argument('--perform_cv', action='store_true', default=True
-	# 					help='Perform cross-validation step')
-	# parser.add_argument('--perform_shapanalysis', action='store_true', default=True,
-	# 					help='Perform SHAP analysis on the final model')
+	# parser.add_argument('--hing_features', type=str, default='True', help='Include features engineered by Hing')
+	# parser.add_argument('--alberta_features', type=str, default='False', help='Include points Alberta score component features')
+	# parser.add_argument('--alberta_features_raw', type=str, default='False', help='Include raw Alberta score component features')
+	# parser.add_argument('--alberta_score', type=str, default='False', help='Include Alberta score as a feature')
+	# parser.add_argument('--model_type', type=str, default='xgboost', help='Model type: xgboost or logreg')
+	# parser.add_argument('--perform_cv', type=str, default='True', help='Perform cross-validation step')
+	# parser.add_argument('--perform_shapanalysis', type=str, default='True', help='Perform SHAP analysis on the final model')
+	# parser.add_argument('--target', type=str, default='ckd', help='Target variable: ckd or ckdordeath')
+	# parser.add_argument('--feature_selection', type=str, default='True', help='Perform feature selection using RFE')
+	# parser.add_argument('--n_features_to_select', type=int, default=240, help='Number of features to select with RFE')
+	# parser.add_argument('--rfe_step', type=float, default=0.1, help='Step size for RFE')
+	# parser.add_argument('--random_state', type=int, default=1202, help='Random seed for reproducibility')
 	
 	# return parser.parse_args()
 
 args = fetch_args()
 
-
-# # --------------------------------------------------------
-# # -*- load in the features.csv file -*-
-
-# # Construct the file path
-# file_path = "/data/kidney/Hing/features.csv"
-
-# # Load the CSV file into a DataFrame
-# features_df = pd.read_csv(file_path)  # contains all the features that hing engineered
-
-# # cast AdmitDt and DischDt to datetime
-# features_df['admit_date'] = pd.to_datetime(features_df['admit_date'])
-# features_df['discharge_date'] = pd.to_datetime(features_df['discharge_date'])
-
-# # drop patients who died before they were discharged
-# features_df.drop(features_df[features_df['death_date'] <= features_df['discharge_date']].index, inplace=True)
-
-# if args.hing_features:
-#     features_df['admit_to_stage1'] = (pd.to_datetime(features_df['stage1_date']) - pd.to_datetime(features_df['admit_date'])).dt.days
-#     features_df['stage1_to_discharge'] = (pd.to_datetime(features_df['discharge_date']) - pd.to_datetime(features_df['stage1_date'])).dt.days
-#     features_df['admit_to_stage2'] = (pd.to_datetime(features_df['stage2_date']) - pd.to_datetime(features_df['admit_date'])).dt.days
-#     features_df['stage2_to_discharge'] = (pd.to_datetime(features_df['discharge_date']) - pd.to_datetime(features_df['stage2_date'])).dt.days
-#     features_df['admit_to_stage3'] = (pd.to_datetime(features_df['stage3_date']) - pd.to_datetime(features_df['admit_date'])).dt.days
-#     features_df['stage3_to_discharge'] = (pd.to_datetime(features_df['discharge_date']) - pd.to_datetime(features_df['stage3_date'])).dt.days
-
-# # Calculate death within one year from discharge
-# features_df['death_date'] = pd.to_datetime(features_df['death_date'])
-# features_df['days_to_death'] = (features_df['death_date'] - features_df['discharge_date']).dt.days
-# features_df['death_within_1yr'] = ((features_df['days_to_death'] <= 365) & (~pd.isna(features_df['death_date']))).fillna(False)
-# features_df['ckd_or_death'] = features_df['ckd_stage45'] | features_df['death_within_1yr']
-
-# # Delete death-related columns
-# features_df = features_df.drop(['death_date', 'days_to_death', 'death_within_1yr'], axis=1)
-
-# alberta_df = features_df[["patient_id", "admit_date", "discharge_date", "sex", "age_admit", "highest_stage", "ckd_stage45"]]
-# alberta_df = alberta_df.rename(columns={"sex": "sex_raw", "age_admit": "age_admit_raw", "highest_stage": "highest_stage_raw"})
-
-# print("done loading features.csv")
-
-# # --------------------------------------------------------
-# # -*- load in the lab tests -*-
-
-# # Load in the index labs
-
-# index_labs_file_path = "/data/kidney/Hing/in-hosp labs.csv"
-# index_labs_df = pd.read_csv(index_labs_file_path)
-
-# # Load the pre-index labs
-# prehosp_labs_file_path =  "/data/kidney/Hing/pre-hosp labs.csv"
-# prehosp_labs_df = pd.read_csv(prehosp_labs_file_path)
-
-# # combine the two
-# all_labs_df = pd.concat([index_labs_df, prehosp_labs_df], ignore_index=True)
-
-# # Cast test_date, AdmitDt, and DischDt to datetime
-# all_labs_df['test_date'] = pd.to_datetime(all_labs_df['test_date'])
-# all_labs_df['AdmitDt'] = pd.to_datetime(all_labs_df['AdmitDt'])
-# all_labs_df['DischDt'] = pd.to_datetime(all_labs_df['DischDt'])
-
-# print("done loading lab tests")
-
-
-# # --------------------------------------------------------
-# # -*- alberta score points -*-
-
-# # sex
-# alberta_df["sex_points"] = alberta_df.sex_raw.map({1: 3, 0: 0})
-
-# # age
-# alberta_df["age_admit_points"] = alberta_df.age_admit_raw.map(age_mapping)
-
-# # highest stage
-# alberta_df["highest_stage_points"] = alberta_df.highest_stage_raw.map(stage_mapping)
-
-# # baseline creatinine
-# alberta_df['baseline_creatinine_raw'] = alberta_df.apply(
-#     lambda row: get_baseline_creatinine(row['patient_id'], all_labs_df, row['admit_date'], row['discharge_date']), axis=1
-# )
-# alberta_df["baseline_creatinine_points"] = alberta_df.baseline_creatinine_raw.map(baseline_creatinine_mapping)
-
-# # discharge creatinine
-# alberta_df['discharge_creatinine_raw'] = alberta_df.apply(
-#     lambda row: get_discharge_creatinine(row['patient_id'], all_labs_df, row['admit_date'], row['discharge_date']), axis=1
-# )
-# alberta_df["discharge_creatinine_points"] = alberta_df.discharge_creatinine_raw.map(discharge_creatinine_mapping)
-
-# # albuminuria status
-# alberta_df['albuminuria_status_raw'] = alberta_df.apply(
-#     lambda row: get_albuminuria_status(row['patient_id'], all_labs_df, row['admit_date'], row['discharge_date'])[0], axis=1
-# )
-# alberta_df["albuminuria_status_points"] = alberta_df.albuminuria_status_raw.map(albuminuria_status_mapping)
-
-# print("done calculating alberta score points")
-
-
-# # --------------------------------------------------------
-# # -*- drop patients who don't have a baseline creatinine and discharge creatinine
-
-# print(alberta_df.shape)
-
-# alberta_df = alberta_df.dropna(subset=['baseline_creatinine_raw'])
-# alberta_df = alberta_df.dropna(subset=['discharge_creatinine_raw'])
-
-# print(alberta_df.shape)
-
-# print("done dropping patients without baseline and discharge creatinine")
-
-# # --------------------------------------------------------
-# # -*- calculate alberta score 
-
-# alberta_df["alberta_score"] = alberta_df["sex_points"]+\
-#                               alberta_df["age_admit_points"]+\
-#                               alberta_df["highest_stage_points"]+\
-#                               alberta_df["baseline_creatinine_points"]+\
-#                               alberta_df["discharge_creatinine_points"]+\
-#                               alberta_df["albuminuria_status_points"]
-
-# print("done calculating alberta score")
-
-
-# # --------------------------------------------------------
-# # -*- standardize feature set patient list and order -*-
-
-# # Filter features_df to include only patients present in alberta_df
-# features_df = features_df[features_df['patient_id'].isin(alberta_df['patient_id'])]
-
-# # Filter alberta_df to include only patients present in features_df
-# alberta_df = alberta_df[alberta_df['patient_id'].isin(features_df['patient_id'])]
-
-# # Sort both DataFrames by patient_id
-# features_df = features_df.sort_values(by='patient_id').reset_index(drop=True)
-# alberta_df = alberta_df.sort_values(by='patient_id').reset_index(drop=True)
-
-# # Ensure they have the same shape
-# assert features_df.shape[0] == alberta_df.shape[0], "DataFrames do not have the same number of rows."
-
-# print("done standardizing feature set patient list and order")
-
-
-# # --------------------------------------------------------
-# # -*- create features_used, feature_names, attributes_used -*-
-# # Hing used "attribute" to refer to the target variable
-
-# alberta_score_feature = alberta_df[[
-#     "alberta_score"
-# ]]
-
-# alberta_points_features = alberta_df[[
-#     "sex_points",
-#     "age_admit_points",
-#     "highest_stage_points",
-#     "baseline_creatinine_points",
-#     "discharge_creatinine_points",
-#     "albuminuria_status_points"
-# ]]
-
-# if args.hing_features:  # use hing's features
-#     if args.alberta_features:
-#         # add the alberta score features to the feature set
-#         features_df = pd.concat([features_df, alberta_points_features], axis=1)
-#     if args.alberta_score:
-#         # add the alberta score to the feature set
-#         features_df = pd.concat([features_df, alberta_score_feature], axis=1)
-
-#     # Handle feature selection for Hing's code
-#     feature_columns = []
+# If loading from a previous experiment to regenerate plots, handle that separately
+if args.load_from_experiment:
+	print(f"Loading from experiment: {args.load_from_experiment}")
 	
-#     # Get index for the appropriate target attribute
-#     if args.target == 'ckdordeath': attributes_used = features_df['ckd_or_death'].values
-#     else: attributes_used = features_df['ckd_stage45'].values
-    
-#     # Filter out columns we don't want to use as features
-#     excluded_patterns = ['_date', 'patient_id', 'after']
-#     excluded_columns = set([col for pattern in excluded_patterns 
-#                             for col in features_df.columns if pattern in col])
+	# Load original args
+	original_args_path = os.path.join(args.load_from_experiment, "args.json")
+	if os.path.exists(original_args_path):
+		print(f"Loading original experiment args from {original_args_path}")
+		with open(original_args_path, 'r') as f:
+			original_args_dict = json.load(f)
+		print(f"Original experiment configuration:")
+		for key, value in original_args_dict.items():
+			print(f"  - {key}: {value}")
+	else:
+		print(f"Warning: Could not find args.json at {original_args_path}")
 	
-#     # Also exclude the target columns
-#     excluded_columns.update(['ckd_or_death', 'ckd_stage45'])
+	# Load and regenerate SHAP plots
+	shap_values_path = os.path.join(args.load_from_experiment, "shap_values.pkl")
+	if os.path.exists(shap_values_path):
+		print(f"Loading SHAP values from {shap_values_path}")
+		shap_values = load_shap_values(shap_values_path)
+		
+		# Get feature names from the SHAP values object
+		if hasattr(shap_values, 'feature_names') and shap_values.feature_names is not None:
+			feature_names_loaded = shap_values.feature_names
+		else:
+			# Try to load from full_model_feature_importances.txt
+			importances_path = os.path.join(args.load_from_experiment, "full_model_feature_importances.txt")
+			if os.path.exists(importances_path):
+				print(f"Loading feature names from {importances_path}")
+				importances_df = pd.read_csv(importances_path, sep='\t')
+				feature_names_loaded = importances_df['Feature'].tolist()
+			else:
+				print("Warning: Could not determine feature names, using generic names")
+				feature_names_loaded = [f"feature_{i}" for i in range(shap_values.shape[1])]
+		
+		# Regenerate the plots
+		regenerate_shap_plots_tree(
+			shap_values=shap_values,
+			feature_names=feature_names_loaded,
+			output_dir=args.load_from_experiment,
+			max_display=20
+		)
+		print("SHAP plot regeneration complete!")
+	else:
+		print(f"Error: Could not find shap_values.pkl at {shap_values_path}")
+		print("Make sure the experiment was run with perform_shapanalysis=True")
 	
-#     # Get feature columns (all columns except excluded ones)
-#     feature_columns = [col for col in features_df.columns if col not in excluded_columns]
-	
-#     # Extract features and their names
-#     features_used = features_df[feature_columns].values
-#     feature_names = np.array(feature_columns)
+	# Exit after regenerating plots
+	exit(0)
 
-# elif args.alberta_features:
-#     if args.target == 'ckdordeath': attributes_used = features_df["ckd_or_death"].values
-#     else: attributes_used = features_df["ckd_stage45"].values
-
-#     features_df = alberta_points_features.copy()  # use only the alberta points features
-    
-#     if args.alberta_score:
-#         # add the alberta score to the feature set
-#         features_df = pd.concat([features_df, alberta_score_feature], axis=1)
-
-#     features_used = features_df.values
-#     feature_names = features_df.columns.values
-	
-#     print(feature_names)
-
-# else:  # use only the alberta score
-#     features_used = alberta_score_feature.values
-#     feature_names = alberta_score_feature.columns.values
-
-#     if args.target == 'ckdordeath': attributes_used = features_df["ckd_or_death"].values
-#     else: attributes_used = alberta_df["ckd_stage45"].values
-
-
-# print("done creating features_used, feature_names, attributes_used")
-
-# print(attributes_used.shape, attributes_used.sum())
-
+# # Convert string boolean arguments to actual booleans - this is so silly
+# args.hing_features = args.hing_features.lower() == 'true'
+# args.alberta_features = args.alberta_features.lower() == 'true'
+# args.alberta_features_raw = args.alberta_features_raw.lower() == 'true'
+# args.alberta_score = args.alberta_score.lower() == 'true'
+# args.perform_cv = args.perform_cv.lower() == 'true'
+# args.perform_shapanalysis = args.perform_shapanalysis.lower() == 'true'
+# args.feature_selection = args.feature_selection.lower() == 'true'
 
 # --------------------------------------------------------
 # -*- get preprocessed/cleaned dataset -*-
 # --------------------------------------------------------
 
-features_used, attributes_used, feature_names, features_df = preprocess_data(hing_features=args.hing_features, 
-                                                                             alberta_features=args.alberta_features, 
+features_used, attributes_used, feature_names, features_df, _ = preprocess_data(hing_features=args.hing_features, 
+                                                                             alberta_features_points=args.alberta_features_points, 
+                                                                             alberta_features_raw=args.alberta_features_raw,
                                                                              alberta_score=args.alberta_score,
+																			 eGFR_features=False,  # not using eGFR features for XGBoost model
                                                                              target=args.target,
 																			 model_type=args.model_type)
 
 
+print(feature_names)
 
 # --------------------------------------------------------
 # -*- run training loop and get results -*-
@@ -309,9 +185,11 @@ features_used, attributes_used, feature_names, features_df = preprocess_data(hin
 current_date = datetime.now().strftime("%Y%m%d")
 features_list = []
 if args.hing_features: features_list.append("hing")
-if args.alberta_features: features_list.append("abpoints")
+if args.alberta_features_points: features_list.append("abpoints")
+if args.alberta_features_raw: features_list.append("abpointsraw")
 if args.alberta_score: features_list.append("abscore")
-extra = "rfe" if args.feature_selection and args.hing_features else ""
+extra = f"fselect{args.n_features_to_select}" if args.feature_selection and args.hing_features else ""
+
 
 features_string = "-".join(features_list)
 subfolder_name = f"{current_date}_{args.model_type}_{features_string}_{extra}_fold_results"
@@ -367,7 +245,7 @@ if args.perform_cv:
 
 		if args.feature_selection and args.hing_features:  # perform RFE on the training set
 			classifier = XGBClassifier(random_state=1202)
-			rfe = RFE(estimator=classifier, n_features_to_select=240, step=0.1, verbose=1)  # 381 seconds
+			rfe = RFE(estimator=classifier, n_features_to_select=args.n_features_to_select, step=0.1, verbose=1)  # 381 seconds
 			rfe = rfe.fit(X_train, y_train) 
 
 			X_train = rfe.transform(X_train)
@@ -453,6 +331,29 @@ if args.perform_cv:
 		fold_results = {key: (value.item() if isinstance(value, np.generic) else value) for key, value in fold_results.items()}
 		with open(f"experiments/{subfolder_name}/fold_{i + 1}.json", "w") as f:
 			json.dump(fold_results, f, indent=4)
+
+		# Save the trained model for this fold
+		with open(f"experiments/{subfolder_name}/fold_{i + 1}_model.pkl", 'wb') as f:
+			pickle.dump(classifier, f)
+
+		# Save the scaler for this fold (needed for inference)
+		with open(f"experiments/{subfolder_name}/fold_{i + 1}_scaler.pkl", 'wb') as f:
+			pickle.dump(scaler, f)
+
+		# If RFE was used, save the RFE object for this fold
+		if args.feature_selection and args.hing_features:
+			with open(f"experiments/{subfolder_name}/fold_{i + 1}_rfe.pkl", 'wb') as f:
+				pickle.dump(rfe, f)
+
+		# Save test set predictions for this fold
+		test_predictions = {
+			'y_true': y_test.tolist(),
+			'y_pred': y_pred.tolist(),
+			'y_proba': probas_[:, 1].tolist(),  # Probability of positive class
+			'test_indices': test.tolist()  # Original indices of test samples
+		}
+		with open(f"experiments/{subfolder_name}/fold_{i + 1}_predictions.json", 'w') as f:
+			json.dump(test_predictions, f, indent=4)
 
 		# save feature importances to a file
 		importances = classifier.feature_importances_
@@ -541,38 +442,37 @@ print(f"Model and feature importances saved to experiments/{subfolder_name}/")
 # --------------------------------------------------------
 # -*- perform SHAP analysis on the full model -*-
 
+print("I'm here")
+
 if args.perform_shapanalysis:
-	print("Performing SHAP analysis on the full model...")
-	
-	# Create a DataFrame for SHAP analysis
+
+	print("I'm here")
+	# Prepare feature names based on whether RFE was applied
 	if args.hing_features:
-		# Use the reduced feature set if RFE was applied
-		shap_df = pd.DataFrame(X_full, columns=feature_names_full)
+		shap_feature_names = feature_names_full
 	else:
-		shap_df = pd.DataFrame(X_full, columns=feature_names)
+		shap_feature_names = feature_names
 	
-	# Initialize the SHAP explainer
-	explainer = shap.TreeExplainer(full_classifier)
-	shap_values = explainer(shap_df)
+	# Generate descriptive title based on experiment configuration
+	model_name = args.model_type.upper() if args.model_type else "Model"
+	feature_desc_parts = []
+	if args.hing_features: feature_desc_parts.append("Expanded Features")
+	if args.alberta_features_points: feature_desc_parts.append("Alberta Points")
+	if args.alberta_features_raw: feature_desc_parts.append("Alberta Features")
+	if args.alberta_score: feature_desc_parts.append("Alberta Score")
+	feature_desc = ", ".join(feature_desc_parts) if feature_desc_parts else "Features"
 	
-	# Generate and save the beeswarm plot
-	plt.clf()
-	figure = plt.gcf()
+	beeswarm_title = f"{model_name} SHAP Feature Impact ({feature_desc})"
+	bar_title = f"{model_name} SHAP Feature Importance ({feature_desc})"
+
+	print(beeswarm_title, bar_title)
 	
-	# Standard size plot with top features
-	shap.plots.beeswarm(shap_values, plot_size=(18, 14), max_display=60, 
-						color=plt.get_cmap("cool"), show=False)
-	figure.savefig(f"experiments/{subfolder_name}/shap_beeswarm_top60.png", dpi=300, bbox_inches='tight')
-	
-	# Larger plot with more features
-	plt.clf()
-	figure = plt.gcf()
-	shap.plots.beeswarm(shap_values, plot_size=(18, 80), max_display=240, 
-						color=plt.get_cmap("cool"), show=False)
-	figure.savefig(f"experiments/{subfolder_name}/shap_beeswarm_top240.png", dpi=300, bbox_inches='tight')
-	
-	# Save SHAP values for future analysis
-	with open(f"experiments/{subfolder_name}/shap_values.pkl", 'wb') as f:
-		pickle.dump(shap_values, f)
-	
-	print(f"SHAP analysis completed and plots saved to experiments/{subfolder_name}/")
+	shap_values = perform_shap_analysis_tree(
+		classifier=full_classifier,
+		X_data=X_full,
+		feature_names=shap_feature_names,
+		output_dir=f"experiments/{subfolder_name}",
+		max_display=20,
+		beeswarm_title=beeswarm_title,
+		bar_title=bar_title
+	)

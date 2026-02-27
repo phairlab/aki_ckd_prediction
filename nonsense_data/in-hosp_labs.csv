@@ -1,0 +1,1001 @@
+test_date,TEST_NM,TEST_RSLT,TEST_UOFM,lab_test_category,AdmitDt,DischDt,id
+2021-05-18,Glucose Meter,89,mmol/L,Hemoglobin,2021-12-05,2021-01-20,2201
+2020-03-07,Glucose Meter,125,mL/min/1.73m2,glucose,2021-09-28,2021-03-18,93
+2020-12-19,HCO3,73,mmol/L,glucose,2021-03-18,2021-11-03,711
+2020-11-28,Glucose Meter,80,mmol/L,glucose,2020-02-15,2021-02-17,685
+2020-12-09,Hemoglobin,1.08,mmol/L,Bicarbonate,2020-11-18,2021-11-24,3977
+2020-02-03,Phosphate,82,g/L,Hemoglobin,2021-12-28,2020-03-24,769
+2021-11-22,HCO3,5.7,mmol/L,eGFR,2020-05-28,2021-04-09,1506
+2020-11-09,eGFR,146,umol/L,glucose,2020-04-14,2021-10-25,3565
+2020-10-09,eGFR,68,g/L,glucose,2020-09-20,2021-12-24,1153
+2021-09-09,Glucose Meter,8.5,mmol/L,glucose,2020-01-22,2020-08-28,1384
+2020-06-23,Hemoglobin,22,mL/min/1.73m2,Hemoglobin,2021-05-08,2021-03-31,1704
+2020-09-03,Glucose Meter,64,mL/min/1.73m2,glucose,2020-12-16,2020-09-17,1548
+2021-02-23,HCO3,9.1,mmol/L,glucose,2021-05-05,2020-03-02,1661
+2021-01-15,Creatinine,101,umol/L,Hemoglobin,2021-08-24,2020-01-12,1425
+2021-02-03,"Protein / Creatinine Ratio, Urine",151,mL/min/1.73m2,Hemoglobin,2020-07-27,2021-01-27,1061
+2021-01-28,Glucose Meter,5.9,g/L,eGFR,2021-12-21,2021-03-23,4282
+2021-08-12,Glucose Meter,28,umol/L,glucose,2020-10-16,2021-12-14,979
+2020-07-27,Hemoglobin,85,mmol/L,glucose,2020-11-17,2021-04-02,1522
+2021-09-10,Glucose Meter,139,g/L,Bicarbonate,2020-05-28,2020-07-18,866
+2021-08-30,Glucose Meter,105,mmol/L,Bicarbonate,2021-05-10,2021-04-26,2970
+2020-09-21,eGFR,39,g/L,glucose,2021-11-03,2021-10-04,1749
+2020-07-17,Glucose Meter,109,mmol/L,glucose,2020-04-27,2022-02-07,4132
+2021-10-01,HCO3,117,mmol/L,glucose,2020-02-23,2020-11-02,2683
+2021-05-05,Glucose,22,umol/L,Hemoglobin,2020-11-28,2020-12-29,3287
+2020-11-12,Creatinine,61,umol/L,Hemoglobin,2021-03-30,2020-05-11,3777
+2020-07-25,Hemoglobin,6.6,mmol/L,Creatinine,2021-02-14,2021-04-28,4310
+2021-03-02,Glucose,77,mmol/L,glucose,2020-05-01,2020-05-16,2752
+2020-01-09,HCO3,51,mmol/L,glucose,2020-01-24,2021-02-07,823
+2021-10-20,Glucose Meter,82,g/L,Creatinine,2020-02-19,2021-01-29,1076
+2020-05-01,Creatinine,11.7,mL/min/1.73m2,Hemoglobin,2021-07-03,2021-12-22,134
+2021-09-17,Glucose,5.4,umol/L,Hemoglobin,2020-05-25,2021-11-15,4144
+2020-04-20,Glucose,8.3,g/L,Hemoglobin,2020-06-21,2021-04-09,913
+2021-06-04,Hemoglobin,45,g/L,Creatinine,2021-07-31,2020-05-11,1498
+2020-01-28,"Glucose, Random",11.6,mmol/L,eGFR,2021-12-16,2020-10-07,1768
+2020-08-08,eGFR,29,g/L,glucose,2021-11-29,2020-06-02,1599
+2021-03-21,Hemoglobin,45,umol/L,eGFR,2021-07-28,2020-11-24,1206
+2020-03-02,eGFR,123,mmol/L,eGFR,2020-05-09,2020-05-05,1981
+2021-11-24,Creatinine,39,g/L,Hemoglobin,2021-09-16,2021-04-26,3272
+2021-06-07,Hemoglobin,65,mL/min/1.73m2,Creatinine,2020-05-27,2021-04-19,2446
+2020-06-17,HCO3,320,umol/L,eGFR,2021-10-22,2022-02-02,1772
+2021-07-16,Glucose,20,umol/L,glucose,2020-05-01,2020-07-14,4107
+2021-06-18,HCO3,170,mmol/L,Hemoglobin,2020-04-20,2021-07-16,2151
+2020-02-16,HCO3,117 Reduced muscle mass will lead to overestimation and increased muscle mass to underestimation of eGFR.,mL/min/1.73m2,phosphate,2020-09-05,2021-06-04,2402
+2021-10-19,Glucose Meter,5.7,mmol/L,Creatinine,2020-11-11,2022-01-08,3185
+2020-07-23,Glucose Meter,53,mmol/L,glucose,2020-03-02,2021-09-03,1946
+2021-07-16,Glomerular Filtration Rate Estimate,29,g/L,glucose,2020-09-28,2021-11-06,4459
+2021-01-05,HCO3,5.3,umol/L,Hemoglobin,2021-01-29,2022-01-20,4100
+2020-01-26,HCO3,9.7,mmol/L,glucose,2021-01-12,2021-01-18,1579
+2020-05-29,eGFR,7.0,umol/L,glucose,2021-08-31,2021-06-09,1534
+2021-05-23,Glucose,17.4,mL/min/1.73m2,Creatinine,2020-03-03,2020-11-20,3469
+2021-12-18,HCO3,157,mL/min/1.73m2,glucose,2021-11-25,2020-10-09,1715
+2020-05-14,eGFR,28,g/L,phosphate,2021-08-30,2021-10-01,1441
+2020-02-09,Hemoglobin,104,mmol/L,Bicarbonate,2021-05-15,2021-10-27,3859
+2021-07-29,eGFR,115,umol/L,Hemoglobin,2020-07-13,2021-03-05,1382
+2020-05-08,Phosphate,21,mL/min/1.73m2,Albumin,2020-03-26,2020-07-31,2955
+2020-11-17,Glucose Meter,47,umol/L,Creatinine,2021-05-21,2021-08-04,3258
+2020-09-18,Glucose,75,mL/min/1.73m2,eGFR,2021-03-22,2021-01-21,4518
+2021-12-31,Hemoglobin,87,umol/L,Creatinine,2021-05-23,2020-02-26,638
+2021-03-31,Glucose Meter,13.2,mmol/L,glucose,2020-12-23,2020-01-24,4342
+2021-05-19,Glucose,55,mmol/L,eGFR,2020-12-11,2021-10-06,1206
+2021-10-01,Glucose,9.7,umol/L,glucose,2021-06-09,2020-08-11,4670
+2020-11-04,Hemoglobin,42,mmol/L,glucose,2020-12-09,2020-09-15,1957
+2020-03-01,Creatinine,54,mmol/L,Creatinine,2020-03-18,2021-02-21,4573
+2021-05-19,Creatinine,7.5,mL/min/1.73m2,Creatinine,2020-02-13,2021-12-31,4611
+2020-04-01,eGFR,103,mmol/L,Hemoglobin,2021-05-16,2021-08-17,2602
+2020-11-30,Hemoglobin,118,g/L,eGFR,2021-02-28,2021-01-26,4585
+2021-07-01,eGFR,35,mmol/L,Hemoglobin,2020-11-30,2020-03-07,927
+2020-05-25,Hemoglobin,95,g/L,Hemoglobin,2021-11-01,2020-01-14,2800
+2020-09-05,Creatinine,14.8,g/L,eGFR,2020-05-13,2021-01-15,3746
+2021-12-25,Creatinine,256,mmol/L,Bicarbonate,2021-06-25,2021-09-07,3272
+2021-10-30,HCO3,38,mmol/L,glucose,2020-11-26,2020-06-20,3570
+2020-04-13,Glucose,13.5,mmol/L,Creatinine,2021-06-29,2020-05-05,2034
+2021-11-03,eGFR,81,umol/L,Albumin,2020-06-04,2020-09-06,1348
+2020-01-31,eGFR,9.5,mmol/L,glucose,2020-10-23,2020-03-24,45
+2021-01-17,Creatinine,11.2,mL/min/1.73m2,glucose,2021-08-12,2022-02-08,3665
+2020-06-19,Hemoglobin,5.6,umol/L,glucose,2020-09-18,2020-12-15,3269
+2020-04-21,Glucose,18.0,mmol/L,glucose,2021-11-30,2020-03-20,4201
+2020-04-19,Creatinine,8.2,mmol/L,glucose,2021-10-11,2020-05-04,2399
+2021-11-01,Glucose Meter,16,g/L,Bicarbonate,2020-05-28,2021-06-01,365
+2020-12-19,eGFR,137,umol/L,Creatinine,2021-05-15,2020-05-13,1939
+2020-05-22,Glucose Meter,4.8,g/L,glucose,2021-12-08,2020-05-05,3743
+2020-11-18,Glucose Meter,160,g/L,Hemoglobin,2020-08-19,2021-06-30,4216
+2021-02-28,Glucose,5.7,mmol/L,Hemoglobin,2021-03-01,2020-06-18,2561
+2020-11-17,Glucose,10.3,mL/min/1.73m2,glucose,2021-01-01,2022-02-20,468
+2020-11-10,HCO3,114,umol/L,Bicarbonate,2021-11-09,2021-05-13,3185
+2020-01-05,Hemoglobin,14.0,mmol/L,glucose,2021-10-17,2021-03-02,2587
+2021-12-10,Hemoglobin,74,mL/min/1.73m2,eGFR,2020-12-20,2020-09-15,1482
+2020-12-29,Hemoglobin,5.4,g/L,Creatinine,2021-10-19,2021-09-23,2948
+2020-03-18,HCO3,106,mmol/L,Bicarbonate,2020-01-31,2021-04-07,4159
+2020-05-17,Hemoglobin,96,mL/min/1.73m2,glucose,2021-11-30,2021-08-10,4392
+2021-05-30,HCO3,86,mmol/L,glucose,2021-11-18,2021-03-29,4242
+2020-01-10,Creatinine,35,g/L,glucose,2020-01-06,2020-12-30,4118
+2021-05-26,Glucose Meter,25,mmol/L,glucose,2020-12-15,2022-02-20,3507
+2021-03-29,Creatinine,81,mmol/L,Hemoglobin,2020-07-16,2021-09-14,1984
+2020-06-01,Glucose Meter,82,g/L,Creatinine,2021-12-02,2021-05-21,2409
+2021-05-21,Glucose Meter,161,umol/L,Albumin,2021-10-19,2021-02-26,3109
+2020-11-12,Hemoglobin,99,mL/min/1.73m2,phosphate,2021-05-20,2020-12-11,107
+2021-07-29,Creatinine,102,mmol/L,Creatinine,2020-03-12,2021-03-10,2998
+2021-06-19,eGFR,88,g/L,Creatinine,2020-11-17,2020-07-03,2924
+2021-04-12,Hemoglobin,145,mL/min/1.73m2,Hemoglobin,2020-07-20,2020-01-21,3815
+2021-02-05,Creatinine,14.7,mmol/L,Creatinine,2021-10-11,2020-02-14,2709
+2020-03-12,eGFR,9.5,mmol/L,Hemoglobin,2020-12-08,2021-01-22,1207
+2020-01-16,Hemoglobin,211,mmol/L,Bicarbonate,2020-11-26,2021-11-05,1145
+2020-01-31,Glucose Meter,5.5,umol/L,eGFR,2020-12-21,2020-10-04,1381
+2020-09-20,Glucose,40,mmol/L,Bicarbonate,2021-10-27,2021-01-06,647
+2021-11-06,Glucose Meter,11.0,umol/L,Hemoglobin,2021-11-18,2021-12-15,4540
+2020-12-25,Creatinine,88,mmol/L,glucose,2020-06-29,2021-08-17,4684
+2020-03-17,eGFR,132,mL/min/1.73m2,eGFR,2021-05-28,2021-12-05,1049
+2021-09-18,Hemoglobin,5.7,g/L,eGFR,2021-11-22,2020-09-30,2747
+2020-07-31,eGFR,113,g/L,Bicarbonate,2020-09-29,2021-09-28,4136
+2020-07-31,Glucose Meter,49,g/L,glucose,2020-04-13,2021-12-15,373
+2021-11-21,Creatinine,11.2,mmol/L,Cholesterol,2020-06-18,2021-12-13,1110
+2021-07-22,eGFR,149,g/L,glucose,2020-11-27,2020-10-09,3963
+2021-05-13,Hemoglobin,160,mmol/L,Hemoglobin,2021-02-09,2020-12-09,4298
+2021-03-27,Creatinine,53,umol/L,glucose,2020-08-19,2021-05-14,787
+2021-09-02,Creatinine,138,mmol/L,eGFR,2020-04-13,2020-04-04,1149
+2021-01-25,Glucose Meter,81,umol/L,glucose,2021-01-09,2021-12-05,1944
+2021-08-02,eGFR,105,g/L,glucose,2020-04-13,2021-02-12,3855
+2020-03-08,Creatinine,11.7,mmol/L,glucose,2020-07-10,2020-03-05,409
+2021-04-22,Creatinine,10.2,mL/min/1.73m2,Bicarbonate,2020-01-23,2021-02-15,833
+2020-08-12,Glucose,82,mL/min/1.73m2,glucose,2020-04-10,2020-02-18,1280
+2020-03-04,Glucose Meter,973.91,mmol/L,glucose,2021-05-10,2021-04-09,3140
+2021-04-15,HCO3,7.9,mmol/L,C-reactive protein,2020-06-10,2021-11-15,2928
+2020-09-09,Creatinine,50.0,g/L,glucose,2021-09-08,2020-07-13,4517
+2021-09-15,Glucose Meter,85,mmol/L,Hemoglobin,2020-03-03,2021-05-20,2982
+2020-04-24,HCO3,122,umol/L,glucose,2021-10-10,2020-09-05,4298
+2021-12-13,Glucose,86,mL/min/1.73m2,Bicarbonate,2020-11-11,2021-04-18,2509
+2020-09-10,eGFR,43,mL/min/1.73m2,eGFR,2021-08-23,2021-05-29,2564
+2021-12-06,Hemoglobin,132,mmol/L,eGFR,2021-01-05,2021-06-16,2920
+2021-05-21,eGFR,16.2,g/L,glucose,2021-03-31,2021-01-07,3868
+2020-09-14,Glucose,13.9,mmol/L,glucose,2020-06-05,2021-10-16,4451
+2020-11-24,Phosphate,55,mmol/L,phosphate,2020-08-14,2021-03-05,2523
+2021-12-11,HCO3,10.4,g/L,phosphate,2021-10-15,2021-01-13,1575
+2021-06-28,Hemoglobin,12.4,mL/min/1.73m2,Hemoglobin,2021-05-23,2020-03-26,2749
+2020-05-01,eGFR,41,mmol/L,glucose,2021-12-30,2021-10-11,332
+2021-10-01,eGFR,10.3,mmol/L,Creatinine,2021-10-24,2021-12-21,4145
+2021-07-07,Hemoglobin,125,mL/min/1.73m2,Creatinine,2020-06-25,2021-07-12,2672
+2020-08-03,Glucose,135,g/L,glucose,2021-05-15,2022-02-25,1203
+2021-01-04,eGFR,145,umol/L,Hemoglobin,2020-01-24,2022-01-07,3537
+2020-04-09,Glucose Meter,38,mmol/L,eGFR,2021-05-15,2020-12-02,1840
+2020-11-15,eGFR,35,g/L,Hemoglobin,2020-11-29,2020-09-10,2921
+2020-05-06,Creatinine,5.3,mmol/L,Hemoglobin,2021-06-25,2020-07-31,56
+2020-09-22,Glucose,51,g/L,glucose,2020-12-07,2020-12-04,395
+2020-02-18,Glucose,77,umol/L,Creatinine,2021-10-30,2021-02-22,3782
+2021-10-12,eGFR,20,mL/min/1.73m2,glucose,2020-04-06,2020-02-21,2165
+2020-08-10,Glucose Meter,58,umol/L,Albumin,2020-06-17,2020-05-25,4248
+2020-03-13,Glomerular Filtration Rate Estimate,8.0,mL/min/1.73m2,Bicarbonate,2020-11-28,2021-09-10,986
+2021-02-05,Urate,80,g/L,phosphate,2021-11-18,2020-04-16,252
+2021-06-29,Hemoglobin,6.0,mmol/L,phosphate,2020-11-02,2021-07-22,781
+2021-08-09,Glucose,109,g/L,Creatinine,2020-06-04,2021-11-24,1070
+2020-03-04,Glucose Meter,32,mmol/L,Hemoglobin,2020-08-03,2021-01-07,1707
+2021-10-23,Glucose,29,umol/L,glucose,2021-02-18,2021-06-30,1157
+2021-12-14,Glucose Meter,65,mmol/L,glucose,2020-02-14,2020-03-05,3815
+2021-11-20,Phosphate,4.2,g/L,glucose,2021-07-03,2021-05-12,3276
+2021-12-14,Creatinine,135,g/L,glucose,2020-06-02,2020-10-08,1480
+2021-10-13,Creatinine,85,mL/min/1.73m2,Creatinine,2021-10-11,2021-02-05,4212
+2020-10-02,HCO3,147,mL/min/1.73m2,Bicarbonate,2020-01-13,2020-06-13,3284
+2020-08-05,Hemoglobin,22,mL/min/1.73m2,Creatinine,2020-12-31,2020-08-27,593
+2020-02-23,Creatinine,92,mg/L,Bicarbonate,2021-03-03,2021-04-28,2438
+2020-05-14,Glucose Meter,5.3,mmol/L,Creatinine,2020-04-16,2021-03-15,3954
+2021-09-17,Creatinine,24,mL/min/1.73m2,eGFR,2020-01-29,2021-06-18,2415
+2021-06-18,Hemoglobin,97 Reduced muscle mass will lead to overestimation and increased muscle mass to underestimation of eGFR.,g/L,glucose,2021-06-01,2021-02-12,628
+2020-08-02,Albumin,111,mmol/L,glucose,2020-12-26,2020-10-17,4617
+2021-12-27,Glucose Meter,115,g/L,Hemoglobin,2020-10-18,2020-09-09,2257
+2020-11-03,Glucose,6.1,g/L,Hemoglobin,2020-02-11,2021-03-05,1679
+2020-02-23,Creatinine,2.61,umol/L,Bicarbonate,2020-05-21,2022-02-11,2896
+2020-07-17,Hemoglobin,20,g/L,Creatinine,2021-07-02,2021-01-20,2258
+2021-04-29,eGFR,12.9,mmol/L,eGFR,2021-10-24,2021-05-28,321
+2021-01-11,Glucose Meter,8.7,g/L,Hemoglobin,2021-07-28,2020-03-24,3276
+2020-12-27,Hemoglobin,0.44,g/L,glucose,2021-01-05,2020-05-01,4121
+2021-04-24,Hemoglobin,5.9,mmol/L,Creatinine,2020-12-28,2021-05-21,4179
+2021-02-21,Hemoglobin,73,g/L,glucose,2020-12-25,2021-01-01,484
+2021-09-04,HCO3,138,mL/min/1.73m2,C-reactive protein,2020-02-14,2020-05-15,3592
+2021-02-16,Glucose,6.7,g/L,Hemoglobin,2020-08-01,2020-09-30,3904
+2021-12-15,eGFR,55,mmol/L,Creatinine,2020-06-14,2020-11-13,2698
+2021-01-29,Glucose Meter,6.6,g/L,Creatinine,2020-10-08,2020-07-09,892
+2021-12-12,Creatinine,110,g/L,glucose,2020-04-12,2020-12-17,66
+2020-08-21,Phosphate,113,mmol/L,Creatinine,2020-04-23,2020-04-10,2451
+2020-07-05,Glucose,74.1,mL/min/1.73m2,eGFR,2021-11-24,2020-10-08,4333
+2020-01-09,Hemoglobin,5.8,mmol/L,Bicarbonate,2020-09-15,2021-10-13,365
+2021-10-14,Hemoglobin,59,mmol/L,Creatinine,2020-11-10,2020-12-02,951
+2021-03-27,Creatinine,31,umol/L,Hemoglobin,2021-05-24,2021-09-09,4339
+2020-04-18,Phosphate,30,mmol/L,eGFR,2021-11-07,2022-02-20,703
+2020-01-08,Creatinine,109,mL/min/1.73m2,eGFR,2020-09-09,2020-05-21,2309
+2020-09-19,HCO3,7.0,umol/L,Creatinine,2020-01-12,2021-05-14,3006
+2020-03-14,Creatinine,70,mmol/L,Creatinine,2020-06-09,2020-03-20,1971
+2021-01-20,Creatinine,79,g/L,Hemoglobin,2021-03-31,2020-10-17,4304
+2020-08-20,HCO3,75,umol/L,Hemoglobin,2021-07-16,2021-12-21,3242
+2020-12-07,Glucose,67,g/L,glucose,2021-10-11,2020-08-21,2252
+2020-08-13,Glucose Meter,9.3,mL/min/1.73m2,glucose,2020-05-04,2022-01-13,1481
+2021-08-07,Hemoglobin,7.4,mmol/L,Hemoglobin,2020-04-03,2020-01-21,3050
+2020-12-07,Hemoglobin,84,g/L,Hemoglobin,2020-03-03,2021-12-16,1937
+2020-01-14,Hemoglobin,7.7,mmol/L,glucose,2021-10-01,2021-03-15,3788
+2020-03-18,Hemoglobin,75,umol/L,Creatinine,2020-02-14,2021-06-24,18
+2020-02-17,eGFR,25,mmol/L,Creatinine,2020-03-02,2021-02-04,1224
+2021-08-18,Glucose Meter,21,mmol/L,Hemoglobin,2020-04-20,2021-03-31,175
+2021-11-14,Hemoglobin,98,g/L,eGFR,2021-06-29,2021-01-20,1873
+2020-02-18,Glucose,14.3,umol/L,Bicarbonate,2021-11-18,2021-04-14,1203
+2020-04-01,Glucose,27.1,g/L,glucose,2021-04-08,2021-06-25,2290
+2021-10-23,Hemoglobin,5.7,umol/L,Hemoglobin,2020-03-12,2021-05-12,644
+2021-01-11,Hemoglobin,89,g/L,Hemoglobin,2021-03-25,2021-10-19,2352
+2021-03-26,Glucose,6.2,umol/L,eGFR,2021-09-13,2021-05-27,3935
+2021-10-21,Hemoglobin,71,umol/L,glucose,2020-08-01,2022-01-21,2678
+2020-09-12,HCO3,8.7,g/L,eGFR,2021-01-17,2021-11-03,1483
+2021-05-28,Glucose Meter,9.5,mg/mmol,glucose,2021-01-05,2020-06-26,3211
+2021-11-10,Glucose Meter,119,umol/L,Hemoglobin,2020-04-06,2021-06-24,312
+2021-10-23,Hemoglobin,6.2,mL/min/1.73m2,Creatinine,2020-04-28,2021-06-17,395
+2020-02-02,Glucose Meter,10.5,mL/min/1.73m2,Hemoglobin,2021-12-06,2021-06-03,2052
+2020-06-26,Hemoglobin,30,mmol/L,Hemoglobin,2021-11-24,2021-02-23,4508
+2021-10-29,Glucose Meter,0.94,mL/min/1.73m2,Hemoglobin,2020-01-08,2021-10-29,3123
+2020-03-26,Phosphate,54,umol/L,glucose,2021-10-14,2020-12-05,2568
+2021-08-13,Creatinine,149,g/L,glucose,2021-12-01,2020-05-23,2679
+2020-04-27,Hemoglobin,56,g/L,eGFR,2020-11-07,2020-08-12,4080
+2021-01-31,Glucose Meter,105,g/L,glucose,2020-08-04,2020-11-24,741
+2021-05-06,Hemoglobin,119,mmol/L,Hemoglobin,2020-09-21,2021-09-07,4354
+2021-09-13,eGFR,25,umol/L,glucose,2020-12-06,2020-12-09,1410
+2021-03-30,eGFR,64,mmol/L,Creatinine,2020-11-24,2021-02-25,2033
+2021-02-21,Creatinine,1.06,mmol/L,Creatinine,2021-02-14,2020-10-25,4474
+2021-12-22,Phosphate,9.6,mmol/L,Hemoglobin,2021-10-05,2020-04-21,4001
+2021-07-02,"Cholesterol, Total",11.9,mmol/L,Hemoglobin,2021-03-20,2020-08-21,3287
+2021-01-22,HCO3,77,mmol/L,Bicarbonate,2020-08-14,2021-10-28,4477
+2021-05-29,Glucose,25,mmol/L,glucose,2020-04-09,2021-08-20,4229
+2020-03-16,eGFR,6.7,mmol/L,glucose,2021-01-12,2021-08-13,2290
+2020-12-19,eGFR,8.0,mL/min/1.73m2,Bicarbonate,2021-03-25,2020-06-30,3346
+2021-07-20,Hemoglobin,41,mmol/L,eGFR,2021-09-19,2021-04-06,1371
+2020-05-26,Hemoglobin,83,umol/L,C-reactive protein,2020-07-17,2020-01-31,2443
+2021-09-17,eGFR,14.2,mL/min/1.73m2,Creatinine,2020-02-06,2020-07-07,3213
+2020-05-01,Hemoglobin,83,g/L,Creatinine,2020-11-08,2021-11-26,610
+2021-12-08,eGFR,6.1,mL/min/1.73m2,Hemoglobin,2021-05-11,2020-01-24,3742
+2020-05-24,Creatinine,113,mmol/L,glucose,2021-08-17,2021-06-08,4567
+2021-12-27,Creatinine,5.6,mL/min/1.73m2,Hemoglobin,2020-02-07,2021-04-09,1661
+2020-01-16,Glucose Meter,20.3,g/L,glucose,2020-02-21,2020-03-17,3452
+2020-08-29,eGFR,27,umol/L,Hemoglobin,2021-09-06,2020-04-03,2788
+2021-07-12,HCO3,83,mmol/L,glucose,2020-11-27,2021-03-07,2506
+2021-05-03,eGFR,14.7,mmol/L,Bicarbonate,2021-01-01,2020-06-26,4229
+2021-10-16,Hemoglobin,6.4,g/L,glucose,2020-12-16,2021-08-27,2667
+2021-11-11,Glucose Meter,94,g/L,eGFR,2020-08-03,2021-01-13,4254
+2020-09-05,Hemoglobin,85,umol/L,Creatinine,2020-02-07,2020-08-14,2965
+2021-01-12,Phosphate,12.5,g/L,glucose,2021-04-28,2020-10-30,3693
+2020-06-04,Glucose,24,mmol/L,Hemoglobin,2020-01-16,2021-01-29,1949
+2021-05-12,Hemoglobin,85,mL/min/1.73m2,Bicarbonate,2021-04-01,2020-09-29,1741
+2021-01-11,Glucose Meter,113,mL/min/1.73m2,Hemoglobin,2021-11-02,2020-10-08,4072
+2021-12-03,Hemoglobin,12.8,umol/L,glucose,2021-06-06,2020-08-10,3728
+2021-06-20,Creatinine,9,mL/min/1.73m2,Hemoglobin,2021-08-02,2020-05-21,529
+2022-02-09,Creatinine,7.2,mmol/L,eGFR,2021-01-28,2020-02-03,3290
+2021-05-08,Glucose Meter,7.3,mL/min/1.73m2,Hemoglobin,2021-10-09,2020-12-11,2521
+2021-04-22,Hemoglobin,8.8,g/L,eGFR,2020-12-03,2021-02-23,1093
+2021-06-04,Creatinine,105,mmol/L,glucose,2020-11-28,2021-01-08,638
+2021-08-31,Glucose Meter,90,mmol/L,Hemoglobin,2020-09-04,2020-09-08,1627
+2021-07-29,Albumin,10.2,g/L,Creatinine,2020-08-11,2021-08-16,4503
+2021-06-06,Hemoglobin,99,g/L,eGFR,2021-08-28,2020-07-21,2371
+2021-01-13,Creatinine,32,mL/min/1.73m2,Hemoglobin,2020-11-03,2020-09-11,1403
+2021-05-15,Creatinine,61,mL/min/1.73m2,glucose,2020-06-25,2021-01-18,2644
+2020-02-28,Glucose Meter,14,mmol/L,glucose,2020-08-08,2020-10-02,1474
+2021-02-16,Creatinine,37,umol/L,Hemoglobin,2021-10-02,2021-12-21,2991
+2021-09-09,eGFR,97,mmol/L,Hemoglobin,2021-04-18,2020-10-01,1293
+2020-11-10,Glucose,81,mmol/L,Creatinine,2021-09-14,2022-01-07,1536
+2020-02-04,Hemoglobin,77,umol/L,Creatinine,2021-10-14,2020-10-10,2973
+2021-12-18,Creatinine,59,mL/min/1.73m2,Hemoglobin,2021-11-01,2020-09-06,41
+2021-03-04,Glucose Meter,2.17,mmol/L,glucose,2021-01-14,2020-04-07,4196
+2021-04-06,Hemoglobin,153,mmol/L,glucose,2020-07-10,2021-05-24,4063
+2020-08-02,Glucose Meter,29,mmol/L,glucose,2020-04-16,2020-02-12,2687
+2021-07-13,Glucose,21,mmol/L,glucose,2021-08-30,2020-06-02,4225
+2020-06-09,eGFR,90,g/L,glucose,2020-09-22,2020-04-28,2464
+2020-07-30,Creatinine,93,mmol/L,glucose,2021-10-09,2021-05-25,734
+2020-05-09,C-Reactive Protein (CRP),4.3,g/L,Bicarbonate,2020-10-18,2020-02-10,4011
+2021-05-14,Hemoglobin,88,umol/L,glucose,2021-07-28,2021-07-18,2868
+2020-06-22,eGFR,63,mmol/L,glucose,2020-06-23,2020-06-11,181
+2020-12-01,Creatinine,6.6,mL/min/1.73m2,Creatinine,2021-10-21,2021-05-20,1661
+2020-11-02,eGFR,6.95,mmol/L,Hemoglobin,2020-04-27,2021-03-02,543
+2020-06-23,Glucose Meter,15.7,umol/L,eGFR,2020-06-04,2021-08-18,3155
+2021-09-03,Glucose Meter,25,mmol/L,glucose,2021-09-30,2021-07-16,1341
+2021-09-07,eGFR,40,mmol/L,Hemoglobin,2021-06-15,2020-02-20,163
+2020-04-15,Hemoglobin,139,mmol/L,Hemoglobin,2021-09-28,2020-08-19,1308
+2021-10-04,Glucose Meter,26.2,mmol/L,Hemoglobin,2021-08-17,2021-10-14,1190
+2020-07-14,Phosphate,12.7,g/L,glucose,2020-08-13,2020-04-22,2868
+2020-06-30,eGFR,145,umol/L,eGFR,2020-02-16,2020-11-18,4270
+2022-02-16,Creatinine,60,umol/L,Hemoglobin,2021-03-20,2021-09-30,2492
+2021-05-05,Phosphate,9.7,mmol/L,glucose,2021-06-28,2021-03-18,2674
+2020-03-04,Creatinine,12.3,mmol/L,Hemoglobin,2021-03-04,2022-01-31,2963
+2021-12-23,Hemoglobin,121,g/L,Creatinine,2020-11-17,2022-02-13,2538
+2021-04-13,Glucose,93,mmol/L,Creatinine,2021-05-07,2020-11-02,343
+2021-06-19,Creatinine,138,g/L,Hemoglobin,2021-11-07,2021-06-10,539
+2020-04-22,Glucose Meter,20,g/L,glucose,2021-01-14,2021-04-26,3766
+2020-12-21,Hemoglobin,28,mmol/L,Hemoglobin,2020-03-12,2021-12-10,2733
+2020-09-25,Glucose,27,mmol/L,eGFR,2021-05-28,2021-04-01,2996
+2021-01-02,eGFR,9.3,mmol/L,Hemoglobin,2021-06-23,2021-07-21,2411
+2021-12-02,HCO3,153,mL/min/1.73m2,Creatinine,2021-11-06,2021-09-16,2372
+2020-04-28,Glucose Meter,126,mmol/L,glucose,2020-01-22,2021-08-05,2552
+2020-03-09,Creatinine,6.5,mL/min/1.73m2,Hemoglobin,2021-10-17,2021-10-26,4195
+2021-05-10,Glucose Meter,6.6,g/L,Bicarbonate,2020-03-03,2021-04-19,675
+2021-02-17,Creatinine,90,mmol/L,glucose,2020-10-29,2020-01-21,2300
+2020-01-09,Glucose Meter,85,mmol/L,Hemoglobin,2021-01-31,2020-11-20,3258
+2021-01-01,Hemoglobin,144,g/L,Creatinine,2020-11-20,2020-08-20,110
+2020-04-26,Creatinine,75,umol/L,glucose,2021-05-15,2022-01-26,2973
+2020-02-07,Hemoglobin,6.7,g/L,phosphate,2020-05-16,2020-12-31,4095
+2020-03-25,Creatinine,90,mmol/L,Hemoglobin,2021-08-27,2021-02-25,1599
+2021-06-09,eGFR,5.5,mmol/L,Bicarbonate,2020-08-01,2022-01-10,3072
+2021-12-02,Glucose Meter,97,g/L,Bicarbonate,2021-12-29,2020-09-15,3
+2021-07-03,Hemoglobin,110,mmol/L,Hemoglobin,2021-05-15,2022-01-07,1903
+2020-11-11,C-Reactive Protein (CRP),7.7,g/L,Hemoglobin,2020-03-04,2021-03-27,4053
+2020-08-31,Glucose,6.3,g/L,Creatinine,2021-09-06,2020-12-24,1656
+2020-06-18,eGFR,6.9,g/L,Hemoglobin,2021-09-06,2020-02-06,4053
+2021-10-10,eGFR,3.7,g/L,eGFR,2021-07-06,2021-05-14,532
+2021-12-24,Hemoglobin,92,g/L,Bicarbonate,2020-03-01,2020-05-29,146
+2021-08-01,Creatinine,7.8,mmol/L,Creatinine,2020-01-04,2020-11-13,3404
+2021-09-27,Glucose Meter,29,g/L,Creatinine,2020-10-13,2021-09-21,4100
+2020-11-24,Hemoglobin,6.3,mmol/L,Creatinine,2021-10-23,2022-01-27,4621
+2021-03-12,HCO3,92,umol/L,eGFR,2021-07-03,2020-04-22,882
+2020-04-30,Glucose,110,umol/L,glucose,2020-06-28,2021-07-11,2008
+2020-02-16,Creatinine,9.2,mmol/L,eGFR,2021-12-03,2021-10-26,1812
+2021-12-14,Hemoglobin,8.5,umol/L,Hemoglobin,2020-01-06,2021-09-21,3104
+2021-04-27,Glucose Meter,38,mmol/L,eGFR,2021-08-27,2021-12-03,2717
+2021-06-18,eGFR,5.8,mmol/L,Hemoglobin,2020-11-12,2021-05-06,2480
+2020-07-25,Hemoglobin,1.35,mmol/L,glucose,2021-11-18,2020-05-15,2891
+2020-10-24,Hemoglobin,97,mmol/L,glucose,2020-07-14,2022-01-08,598
+2020-02-23,Hemoglobin,5.6,umol/L,Hemoglobin,2020-04-19,2022-01-08,1435
+2020-04-18,HCO3,7.5,mmol/L,Hemoglobin,2021-08-12,2020-03-30,1715
+2021-12-05,Glucose Meter,82,umol/L,eGFR,2021-04-04,2021-08-04,3747
+2020-03-03,Creatinine,80,mL/min/1.73m2,glucose,2021-08-10,2021-08-04,3154
+2020-08-17,C-Reactive Protein (CRP),1.11,umol/L,glucose,2021-01-22,2020-03-04,2511
+2020-07-28,eGFR,296,mmol/L,glucose,2021-05-05,2021-06-12,1879
+2021-12-20,Glucose Meter,27,mL/min/1.73m2,glucose,2021-04-22,2021-07-19,1243
+2020-02-29,Creatinine,9.7,mmol/L,Creatinine,2020-07-27,2021-03-03,892
+2020-01-20,Hemoglobin,85,mmol/L,Creatinine,2021-06-18,2020-07-30,1720
+2020-07-29,eGFR,148,umol/L,glucose,2021-11-14,2020-06-02,4585
+2020-03-19,Hemoglobin,5.5,umol/L,glucose,2020-01-05,2021-09-30,1606
+2021-03-27,Hemoglobin,77,mmol/L,glucose,2021-05-15,2021-08-26,3922
+2020-01-02,Creatinine,105,mmol/L,Hemoglobin,2021-08-25,2020-12-26,4401
+2021-11-13,Creatinine,11.7,g/L,eGFR,2021-06-18,2021-12-12,1715
+2020-08-18,Creatinine,6.4,mmol/L,glucose,2021-09-30,2021-02-05,2480
+2021-09-07,Creatinine,6.1,umol/L,glucose,2020-12-18,2020-03-03,2669
+2021-04-10,Hemoglobin,168,mmol/L,Creatinine,2021-05-02,2020-06-05,4686
+2021-02-25,Glucose Meter,15.5,g/L,Creatinine,2020-02-04,2021-03-02,2329
+2020-12-22,"Glucose, Random",37,mmol/L,C-reactive protein,2020-02-08,2021-08-04,3728
+2022-01-24,Hemoglobin,113,mL/min/1.73m2,glucose,2021-12-10,2020-02-27,2057
+2021-02-23,Hemoglobin,22,mmol/L,glucose,2020-01-05,2022-02-02,1083
+2020-04-26,Phosphate,74,umol/L,Hemoglobin,2021-11-30,2020-05-30,477
+2021-04-07,Glucose Meter,9.9,umol/L,Hemoglobin,2020-02-17,2022-01-20,3506
+2020-03-07,Hemoglobin,92,mmol/L,Hemoglobin,2021-05-08,2020-07-16,1110
+2020-06-03,HCO3,13.5,mmol/L,Hemoglobin,2020-08-10,2020-06-04,2575
+2021-08-05,eGFR,7.1,g/L,Hemoglobin,2020-12-11,2021-04-05,1194
+2021-03-09,Glucose Meter,91,g/L,Creatinine,2020-07-16,2020-01-20,694
+2021-10-20,Glucose,11.2,g/L,Bicarbonate,2020-07-31,2020-08-04,2747
+2021-01-17,HCO3,9.3,mmol/L,glucose,2021-03-24,2020-12-15,1184
+2020-02-23,Creatinine,69,mmol/L,glucose,2021-09-10,2020-12-21,1221
+2020-06-09,Glucose,5.2,g/L,eGFR,2021-01-15,2021-04-18,1348
+2021-07-03,eGFR,70,mmol/L,glucose,2020-11-14,2021-05-31,2631
+2020-03-09,Glucose,98,g/L,glucose,2020-01-03,2020-01-21,3925
+2020-06-30,Glucose Meter,107,umol/L,eGFR,2021-05-06,2021-06-25,2431
+2020-01-03,eGFR,94,mmol/L,glucose,2020-11-20,2020-08-18,1386
+2020-12-18,Hemoglobin,27,mmol/L,glucose,2021-09-28,2022-02-20,1164
+2020-11-05,Creatinine,83,mL/min/1.73m2,eGFR,2020-01-24,2021-12-15,2075
+2021-01-20,Glucose,84,mmol/L,Creatinine,2020-09-14,2021-06-03,1430
+2020-05-10,Hemoglobin,6.2,mmol/L,eGFR,2021-04-23,2021-07-16,3137
+2021-02-17,Hemoglobin,10.8,mmol/L,glucose,2020-11-25,2022-02-25,4329
+2021-07-24,"Glucose, Random",12.8,mmol/L,phosphate,2020-03-02,2020-08-27,2492
+2020-08-10,eGFR,132,mL/min/1.73m2,Hemoglobin,2020-06-18,2020-12-23,1971
+2020-11-08,Glucose Meter,91,mmol/L,Hemoglobin,2021-04-21,2020-06-01,88
+2021-01-29,Creatinine,7.2,mmol/L,glucose,2021-06-19,2020-04-01,445
+2022-02-06,Hemoglobin,111,mmol/L,glucose,2021-09-27,2022-01-06,362
+2020-12-22,Hemoglobin,54,mmol/L,glucose,2020-04-02,2021-07-02,2630
+2020-04-30,Glucose Meter,158,mmol/L,Creatinine,2021-05-15,2020-10-09,737
+2021-11-13,Glucose Meter,31,umol/L,glucose,2021-07-04,2021-11-10,2840
+2020-12-08,Hemoglobin,78,g/L,glucose,2020-02-07,2021-01-04,3287
+2020-09-05,Hemoglobin,104,mmol/L,eGFR,2021-01-11,2021-02-16,1937
+2022-01-21,Creatinine,28,mL/min/1.73m2,glucose,2020-06-12,2021-07-13,986
+2021-07-10,Creatinine,89,mmol/L,glucose,2021-07-29,2021-12-03,3932
+2020-10-15,Hemoglobin,7.9,g/L,glucose,2020-05-14,2021-12-31,4051
+2021-11-21,Hemoglobin,27,mmol/L,glucose,2020-01-15,2020-08-11,904
+2021-09-17,eGFR,27,mL/min/1.73m2,Creatinine,2021-06-18,2020-11-03,4371
+2021-05-24,Creatinine,133,g/L,glucose,2020-12-19,2021-08-13,2639
+2020-05-30,C-Reactive Protein (CRP),46,g/L,glucose,2021-11-15,2021-10-22,176
+2020-10-11,Creatinine,14.1,mg/mmol,glucose,2020-02-28,2021-11-02,1076
+2020-08-20,eGFR,11.6,umol/L,Bicarbonate,2020-05-07,2020-10-25,1573
+2021-11-12,HCO3,8.7,mmol/L,Hemoglobin,2021-06-21,2020-03-07,4028
+2021-06-25,Glucose Meter,34,g/L,Creatinine,2021-02-12,2020-07-16,4282
+2021-12-04,Glucose Meter,14.6,mmol/L,Hemoglobin,2021-04-20,2021-01-07,1785
+2020-04-17,Glucose Meter,14.6,mmol/L,Bicarbonate,2021-06-28,2021-03-23,1623
+2020-12-21,Glucose,12.0,umol/L,glucose,2020-07-01,2020-08-14,4522
+2020-11-20,Creatinine,66,mL/min/1.73m2,glucose,2020-11-22,2020-03-06,3545
+2021-04-29,Glucose Meter,1.01,mL/min/1.73m2,glucose,2021-03-04,2022-02-03,2669
+2021-09-27,Hemoglobin,23,umol/L,eGFR,2021-07-02,2021-05-27,1200
+2021-10-25,Hemoglobin,135,umol/L,Bicarbonate,2020-10-15,2020-08-27,2747
+2021-04-09,Glucose,35,g/L,Hemoglobin,2020-11-27,2020-03-26,464
+2021-11-18,Glucose,84,g/L,Bicarbonate,2021-05-10,2020-03-25,3765
+2021-01-15,eGFR,91,mmol/L,phosphate,2021-04-07,2020-08-25,345
+2021-06-09,Hemoglobin,25,g/L,eGFR,2021-01-17,2020-11-09,2803
+2021-09-01,Hemoglobin,90,umol/L,Hemoglobin,2020-07-27,2021-02-12,2303
+2021-10-22,Hemoglobin,5.2,mmol/L,Creatinine,2021-07-29,2021-05-15,1184
+2020-10-28,Hemoglobin,51,g/L,Bicarbonate,2021-03-03,2021-04-02,3152
+2020-09-02,Hemoglobin,7.5,g/L,glucose,2021-11-03,2021-11-30,3095
+2021-10-01,Glucose Meter,139,mmol/L,glucose,2021-11-07,2021-12-15,2618
+2020-01-14,Glucose Meter,25,mmol/L,glucose,2020-09-03,2021-04-28,969
+2021-06-12,Hemoglobin,378.6,mmol/L,Bicarbonate,2021-10-19,2020-10-02,1238
+2020-12-09,Hemoglobin,15.8,umol/L,glucose,2020-05-28,2021-10-25,1607
+2021-10-09,eGFR,10.6,mL/min/1.73m2,Hemoglobin,2020-02-04,2020-05-29,3105
+2021-11-14,Glucose Meter,41,mmol/L,glucose,2020-01-10,2020-03-09,2232
+2020-10-01,Creatinine,74,mL/min/1.73m2,eGFR,2021-08-23,2021-10-26,3594
+2021-04-03,Creatinine,37,umol/L,Hemoglobin,2021-01-24,2020-12-15,920
+2020-02-19,Phosphate,12.0,mL/min/1.73m2,glucose,2020-08-07,2021-07-04,393
+2021-08-28,eGFR,10.1,mmol/L,Hemoglobin,2020-10-05,2021-11-02,767
+2021-12-21,eGFR,7.3,mmol/L,glucose,2020-01-07,2020-04-15,778
+2021-03-26,Hemoglobin,123,umol/L,Hemoglobin,2021-08-28,2020-08-19,1115
+2021-12-20,Creatinine,63,mmol/L,glucose,2021-12-08,2021-01-13,2777
+2021-11-08,Glucose Meter,83,mmol/L,eGFR,2021-07-31,2021-11-02,1604
+2021-01-06,Phosphate,22,mmol/L,Creatinine,2020-07-21,2021-12-12,3900
+2020-12-28,eGFR,150,mmol/L,Cholesterol,2021-11-06,2021-08-04,2418
+2021-05-17,Hemoglobin,8.8,g/L,eGFR,2020-06-04,2021-04-01,2008
+2020-12-03,"Glucose, Random",104,g/L,phosphate,2021-05-26,2020-11-24,248
+2020-01-18,Glucose Meter,101,mL/min/1.73m2,eGFR,2021-05-06,2021-10-13,1087
+2020-03-23,Hemoglobin,51,g/L,glucose,2020-12-03,2021-02-01,2803
+2020-02-06,HCO3,105,mmol/L,Hemoglobin,2021-06-28,2020-06-05,624
+2020-03-11,Glucose Meter,131,g/L,Creatinine,2020-09-18,2020-04-27,4282
+2021-03-28,Glucose Meter,37,umol/L,Bicarbonate,2020-11-15,2020-09-21,110
+2021-12-22,Creatinine,84,g/L,Bicarbonate,2020-12-06,2021-05-15,2775
+2020-04-09,eGFR,42,mmol/L,Hemoglobin,2021-08-24,2021-01-12,3046
+2020-06-12,Glucose Meter,7.6,mL/min/1.73m2,Creatinine,2021-02-16,2021-03-05,478
+2022-01-02,Hemoglobin,154,mmol/L,C-reactive protein,2021-12-02,2021-04-07,4326
+2021-05-27,Glucose,87,mmol/L,Hemoglobin,2020-06-29,2020-12-18,2777
+2020-10-21,HCO3,8.0,mmol/L,Creatinine,2020-05-04,2021-01-26,2443
+2021-01-22,Glucose Meter,100,mmol/L,Bicarbonate,2020-12-20,2021-10-21,690
+2020-12-21,Hemoglobin,37,g/L,glucose,2020-01-05,2021-02-26,432
+2021-11-02,Glucose,7.3,mmol/L,eGFR,2021-03-22,2020-01-22,4424
+2020-10-25,Glucose,58,mL/min/1.73m2,Hemoglobin,2020-10-21,2022-02-02,2085
+2021-12-30,Creatinine,79,mmol/L,Hemoglobin,2021-05-23,2021-01-29,2520
+2021-03-04,eGFR,511,umol/L,glucose,2020-11-27,2021-02-23,359
+2021-04-12,Glucose Meter,66,g/L,Creatinine,2020-01-06,2021-07-13,4061
+2020-04-26,HCO3,6.5,g/L,glucose,2021-11-18,2022-01-10,3252
+2020-10-26,Creatinine,61,mmol/L,glucose,2020-01-10,2021-01-13,683
+2021-06-04,Hemoglobin,165,g/L,eGFR,2020-08-07,2021-02-23,1807
+2021-12-06,Glucose,132,mmol/L,glucose,2020-12-04,2021-03-23,1720
+2020-12-22,Hemoglobin,192.9,mL/min/1.73m2,glucose,2021-12-22,2021-04-06,1652
+2021-06-23,Glucose Meter,74,mmol/L,glucose,2020-07-21,2020-02-05,4255
+2020-05-19,eGFR,6.8,mmol/L,glucose,2021-03-10,2021-06-08,3405
+2021-06-23,Glucose Meter,110,mmol/L,Hemoglobin,2021-09-28,2021-03-24,1206
+2020-04-04,Hemoglobin,158,mmol/L,Hemoglobin,2021-02-28,2021-06-28,808
+2022-02-16,Glucose Meter,78,mmol/L,glucose,2021-07-03,2021-12-04,603
+2021-11-02,Creatinine,141,mL/min/1.73m2,Hemoglobin,2021-10-07,2021-01-12,555
+2020-05-29,Glucose Meter,7.0,g/L,glucose,2020-09-14,2021-06-18,4432
+2021-11-04,Glucose,7.4,mmol/L,Albumin,2021-01-22,2022-01-23,899
+2020-05-20,Phosphate,1.25,mmol/L,glucose,2020-11-29,2020-10-10,4585
+2020-08-03,eGFR,7.2,mmol/L,glucose,2021-03-03,2020-02-23,2510
+2020-01-28,Glucose Meter,134,mL/min/1.73m2,glucose,2020-12-29,2021-06-28,4080
+2020-11-12,HCO3,133,mmol/L,eGFR,2021-07-01,2020-02-20,3996
+2021-09-18,Hemoglobin,92,umol/L,Creatinine,2020-02-05,2020-08-04,1779
+2021-03-14,Hemoglobin,124,mL/min/1.73m2,eGFR,2020-07-03,2021-04-20,972
+2020-01-31,Hemoglobin,6.9,mmol/L,glucose,2020-06-06,2020-03-13,364
+2021-06-12,Hemoglobin,94,mmol/L,Bicarbonate,2021-12-20,2020-12-31,927
+2020-03-17,Phosphate,62.2,mmol/L,Hemoglobin,2021-01-30,2020-03-08,2177
+2021-09-30,Glucose,24,mmol/L,glucose,2020-06-30,2020-07-20,2973
+2020-03-10,Glucose Meter,26,mmol/L,Hemoglobin,2020-01-28,2021-02-19,3776
+2020-10-04,eGFR,72,mmol/L,Creatinine,2020-06-05,2020-02-20,3606
+2021-12-10,Glucose Meter,1.22,mmol/L,Hemoglobin,2020-12-22,2020-09-17,3153
+2020-05-21,eGFR,16.8,mmol/L,eGFR,2021-05-17,2022-01-06,18
+2020-07-05,HCO3,23,mmol/L,glucose,2021-10-10,2020-06-04,1214
+2020-06-02,Glucose Meter,78,g/L,Hemoglobin,2021-05-10,2020-12-15,2740
+2020-11-19,HCO3,94,g/L,glucose,2020-01-01,2020-07-30,1929
+2021-10-04,HCO3,87,g/L,Bicarbonate,2021-09-30,2021-05-27,3859
+2021-01-09,Glucose,139,g/L,Hemoglobin,2021-12-04,2021-04-22,3250
+2020-07-11,eGFR,86,umol/L,eGFR,2020-05-18,2022-02-02,4119
+2021-01-30,Hemoglobin,12.2,mL/min/1.73m2,glucose,2020-08-03,2021-05-19,1708
+2020-03-05,Hemoglobin,118,umol/L,Hemoglobin,2020-09-14,2020-12-03,2770
+2021-09-30,Albumin,6.8,mmol/L,C-reactive protein,2020-08-23,2021-08-19,352
+2020-03-19,Glucose Meter,154,g/L,eGFR,2021-12-03,2020-05-23,3288
+2020-08-17,Hemoglobin,7.1,mmol/L,Hemoglobin,2021-10-10,2021-06-18,3777
+2021-11-29,eGFR,1.01,mmol/L,glucose,2020-07-03,2020-10-05,228
+2020-04-07,HCO3,8.6,mmol/L,Hemoglobin,2021-08-25,2021-03-30,3454
+2020-09-25,eGFR,69,mmol/L,eGFR,2021-10-18,2021-08-06,2001
+2020-12-13,Hemoglobin,3.7,mg/L,Bicarbonate,2020-03-02,2020-06-02,3276
+2021-09-18,Albumin,15.9,g/L,Bicarbonate,2021-11-15,2021-11-27,3594
+2021-01-22,Creatinine,9.2,mmol/L,glucose,2020-05-24,2021-01-29,2154
+2021-08-04,Hemoglobin,250,g/L,glucose,2021-08-12,2021-08-06,1110
+2021-03-07,Hemoglobin,6.8,g/L,phosphate,2020-08-14,2021-04-21,2414
+2020-11-30,Phosphate,5.4,umol/L,glucose,2020-03-04,2020-02-04,2732
+2021-02-26,Glucose,5.0,mmol/L,glucose,2021-05-10,2020-04-15,1744
+2021-05-03,Hemoglobin,74,mmol/L,Creatinine,2020-01-05,2021-06-09,1394
+2021-10-07,Creatinine,8.6,mmol/L,eGFR,2020-07-31,2021-10-13,2218
+2021-03-17,Creatinine,92,mL/min/1.73m2,glucose,2020-11-26,2021-08-21,4540
+2021-08-07,Glucose Meter,1.68,mmol/L,Bicarbonate,2020-09-14,2020-05-26,868
+2021-06-19,eGFR,23,mmol/L,glucose,2020-02-20,2021-11-16,3122
+2021-04-24,Glucose Meter,45,mmol/L,glucose,2020-05-29,2021-05-14,3077
+2020-10-21,Glucose Meter,11.8,g/L,Creatinine,2021-01-23,2020-08-07,1457
+2020-06-04,Glucose,92,g/L,Bicarbonate,2021-07-03,2020-12-31,4293
+2020-08-20,eGFR,149,g/L,glucose,2020-03-02,2021-08-06,1679
+2021-05-23,Creatinine,138,mmol/L,glucose,2020-07-28,2021-08-06,2165
+2021-12-06,Glucose,67,mmol/L,glucose,2021-02-21,2022-01-08,2202
+2021-02-25,Hemoglobin,8.9,mL/min/1.73m2,phosphate,2021-06-24,2021-06-15,1511
+2021-09-28,Hemoglobin,6.0,umol/L,glucose,2020-08-20,2020-12-11,392
+2021-02-10,Glucose Meter,82,mmol/L,glucose,2021-11-08,2020-04-21,2692
+2021-02-21,eGFR,96,mmol/L,glucose,2020-01-21,2021-07-02,2480
+2020-03-29,Creatinine,140.4,mmol/L,eGFR,2020-10-16,2020-05-15,2629
+2021-12-25,Creatinine,7.6,g/L,Hemoglobin,2020-06-03,2021-02-26,3121
+2020-09-18,Glucose Meter,7.1,mmol/L,Creatinine,2021-12-15,2021-08-06,2749
+2020-08-10,Hemoglobin,1.13,umol/L,Creatinine,2020-04-21,2021-05-12,3108
+2021-10-21,HCO3,104,g/L,eGFR,2021-04-30,2021-12-14,1942
+2021-08-01,Hemoglobin,89,mmol/L,Hemoglobin,2021-09-10,2021-01-19,1168
+2020-07-24,Hemoglobin,30,mmol/L,Hemoglobin,2020-07-23,2021-10-30,1993
+2020-04-11,Glucose Meter,5.8,mmol/L,Bicarbonate,2021-02-20,2021-09-21,690
+2020-03-26,Creatinine,9.2,g/L,eGFR,2021-05-29,2021-03-05,4539
+2021-05-18,"Glucose, Random",136,umol/L,eGFR,2020-02-11,2020-07-17,3474
+2021-05-16,HCO3,10.5,mmol/L,eGFR,2021-12-22,2022-01-14,2494
+2021-01-03,HCO3,11.4,g/L,glucose,2021-07-20,2020-10-30,4433
+2020-03-14,Hemoglobin,15,mmol/L,Creatinine,2021-04-09,2020-02-04,3294
+2021-02-16,Glucose Meter,9.1,umol/L,Hemoglobin,2020-03-12,2021-11-26,4295
+2020-09-08,Creatinine,6.5,g/L,Bicarbonate,2020-09-27,2021-12-16,4232
+2021-10-04,HCO3,189,umol/L,Creatinine,2021-10-14,2020-05-13,872
+2020-06-11,Glucose Meter,83,umol/L,Hemoglobin,2021-02-25,2021-10-12,4217
+2021-09-07,Hemoglobin,5.2,umol/L,glucose,2021-08-04,2021-09-23,3788
+2020-02-20,Glucose,38,umol/L,Bicarbonate,2021-03-03,2020-09-18,1591
+2020-01-13,Glucose Meter,141,umol/L,Hemoglobin,2020-01-18,2021-02-19,133
+2021-09-08,eGFR,46,mL/min/1.73m2,glucose,2020-03-19,2020-12-16,3575
+2020-04-27,Creatinine,12.2,mmol/L,glucose,2021-05-15,2020-03-10,4136
+2021-04-29,Hemoglobin,10.4,umol/L,Bicarbonate,2021-11-04,2021-06-11,1715
+2020-07-12,Hemoglobin,116,mL/min/1.73m2,Creatinine,2021-07-26,2020-08-06,1278
+2020-03-09,Hemoglobin,7.3,mmol/L,glucose,2021-03-01,2020-08-11,4132
+2020-10-06,Hemoglobin,93,g/L,Bicarbonate,2021-02-06,2021-12-14,8
+2020-09-20,Glucose,94,mL/min/1.73m2,eGFR,2021-10-10,2021-04-09,3996
+2020-09-03,eGFR,101,g/L,Hemoglobin,2020-01-24,2020-09-11,63
+2021-10-29,Hemoglobin,115,g/L,Hemoglobin,2021-12-08,2020-10-09,2477
+2020-03-16,Glucose Meter,6.6,mL/min/1.73m2,glucose,2020-02-19,2020-04-20,855
+2021-01-27,Hemoglobin,9.9,mg/L,glucose,2021-08-23,2021-11-21,3072
+2021-05-12,Hemoglobin,115,g/L,glucose,2020-01-06,2021-01-15,131
+2020-08-01,Glucose Meter,132,g/L,eGFR,2021-12-10,2021-09-13,425
+2021-01-02,eGFR,17.5,umol/L,Hemoglobin,2020-06-19,2020-03-17,990
+2021-02-20,eGFR,81,g/L,Bicarbonate,2020-01-03,2020-03-30,4418
+2021-02-03,Creatinine,34,mmol/L,Hemoglobin,2020-11-10,2021-06-30,4253
+2020-08-04,Hemoglobin,5.6,mmol/L,phosphate,2020-01-05,2020-03-31,3070
+2021-12-09,Phosphate,1.06,mmol/L,uric acid,2020-11-12,2020-09-29,3472
+2020-04-14,HCO3,4.9,g/L,Hemoglobin,2021-03-22,2020-03-05,616
+2020-06-09,Glucose Meter,61,mmol/L,Hemoglobin,2020-07-07,2020-03-10,1579
+2020-01-20,Hemoglobin,9.3,g/L,Hemoglobin,2020-03-27,2021-08-05,4557
+2021-01-22,Glucose,128,umol/L,Creatinine,2021-11-30,2021-03-24,4254
+2021-04-09,eGFR,111,umol/L,glucose,2021-10-15,2021-11-10,1768
+2020-12-28,Glucose Meter,8.7,umol/L,eGFR,2020-03-03,2021-04-05,3612
+2020-04-29,Glucose Meter,4.7,umol/L,Creatinine,2021-03-09,2020-03-17,994
+2021-10-02,Hemoglobin,97,g/L,glucose,2020-12-27,2020-06-24,4281
+2021-01-01,Glucose Meter,22,g/L,Creatinine,2020-11-05,2022-02-11,3739
+2021-02-03,Glucose Meter,153,mmol/L,Creatinine,2020-06-05,2020-03-07,1405
+2020-04-10,Glucose,12.8,mmol/L,Hemoglobin,2021-02-09,2020-06-04,1635
+2021-12-24,Creatinine,96,umol/L,glucose,2021-08-01,2020-04-29,1857
+2020-09-07,eGFR,34,mmol/L,Creatinine,2020-02-16,2021-08-18,1996
+2020-01-16,HCO3,24.3,mmol/L,eGFR,2021-11-08,2020-08-14,2177
+2021-07-16,Hemoglobin,65,mmol/L,Hemoglobin,2021-01-28,2020-02-20,3195
+2020-11-27,Hemoglobin,69,mmol/L,Bicarbonate,2020-03-07,2020-12-02,1481
+2021-01-03,Hemoglobin,98,mmol/L,Hemoglobin,2021-12-04,2021-02-17,3054
+2020-12-02,HCO3,7.9,mmol/L,phosphate,2020-07-08,2020-09-14,4198
+2020-02-26,Glucose Meter,103,mmol/L,eGFR,2021-04-23,2021-09-13,4298
+2022-01-08,Hemoglobin,107,mmol/L,Hemoglobin,2021-10-09,2020-04-15,2641
+2021-01-17,eGFR,88,mL/min/1.73m2,phosphate,2021-08-04,2020-12-15,379
+2021-04-07,Creatinine,8.7,g/L,glucose,2021-01-01,2021-12-17,4363
+2021-06-17,Creatinine,14.9,mmol/L,Creatinine,2021-09-09,2021-04-28,2706
+2020-12-28,Creatinine,8.9,mmol/L,glucose,2021-09-03,2020-11-27,3491
+2020-05-28,Glucose Meter,78,g/L,Creatinine,2020-07-23,2021-08-11,354
+2022-01-03,Creatinine,9.5,mL/min/1.73m2,Creatinine,2020-04-13,2020-09-12,333
+2020-02-28,Hemoglobin,10.1,mmol/L,glucose,2020-04-23,2021-01-13,2256
+2021-02-20,eGFR,9.0,mmol/L,Hemoglobin,2021-06-17,2021-12-16,2093
+2020-05-07,eGFR,6.5,mmol/L,Hemoglobin,2021-05-17,2021-11-16,2957
+2020-09-07,Glucose Meter,48,mmol/L,eGFR,2021-04-14,2020-06-04,4428
+2021-11-05,Glucose Meter,6.7,mL/min/1.73m2,eGFR,2020-03-06,2020-12-30,4178
+2021-09-06,Glucose Meter,32,mmol/L,eGFR,2021-11-22,2021-05-14,4380
+2020-05-29,eGFR,20.5,mmol/L,Hemoglobin,2020-03-04,2021-08-16,4503
+2020-02-08,Glucose Meter,8.8,mmol/L,Creatinine,2020-01-21,2021-07-22,770
+2020-06-25,Glucose,68,g/L,glucose,2021-04-06,2020-06-26,3931
+2021-03-01,Hemoglobin,6.4,umol/L,Bicarbonate,2021-07-01,2021-05-08,3326
+2021-10-19,Creatinine,91,g/L,Bicarbonate,2021-06-23,2020-04-10,4132
+2020-04-14,HCO3,104,mmol/L,glucose,2020-04-02,2022-01-06,2641
+2021-10-06,Creatinine,100,mg/L,Hemoglobin,2020-11-10,2021-02-25,236
+2021-03-10,Glucose Meter,7.8,umol/L,glucose,2020-08-13,2021-03-31,1418
+2021-10-30,Glucose Meter,8.6,g/L,Albumin,2020-06-18,2020-10-30,2016
+2021-05-10,Creatinine,10.3,mmol/L,eGFR,2021-03-22,2020-08-21,3590
+2020-08-01,Creatinine,94,mmol/L,Hemoglobin,2021-09-30,2021-09-24,1254
+2021-10-05,eGFR,60,mmol/L,Hemoglobin,2021-05-13,2020-04-01,1986
+2021-12-25,Glucose Meter,47,g/L,phosphate,2021-06-08,2021-06-08,1745
+2021-05-07,Albumin,126,umol/L,glucose,2021-02-10,2021-02-25,3714
+2021-12-15,Hemoglobin,7.7,mmol/L,Hemoglobin,2020-01-01,2021-07-08,2749
+2021-07-26,HCO3,8.0,g/L,Creatinine,2021-11-22,2020-09-18,4156
+2021-12-16,Glucose,7.6,mmol/L,Creatinine,2020-05-06,2021-12-13,1640
+2021-10-10,Hemoglobin,79,mmol/L,eGFR,2021-01-01,2021-05-13,3794
+2021-12-31,Glucose Meter,16.0,mmol/L,Hemoglobin,2020-06-06,2020-02-28,2204
+2021-03-25,Glucose Meter,83,mmol/L,Hemoglobin,2021-12-10,2020-04-21,2558
+2020-07-31,eGFR,44,g/L,eGFR,2021-08-23,2021-10-25,3594
+2020-06-08,Glucose,74,mmol/L,Hemoglobin,2020-09-19,2021-05-28,3250
+2020-03-06,Hemoglobin,1.47,mL/min/1.73m2,glucose,2020-05-13,2021-08-04,2347
+2021-02-01,Creatinine,58,mL/min/1.73m2,Bicarbonate,2020-06-26,2021-07-22,3234
+2021-12-08,eGFR,4.8,mmol/L,Hemoglobin,2021-06-09,2021-09-24,1410
+2020-06-03,eGFR,25,g/L,Hemoglobin,2021-10-09,2021-04-20,1802
+2020-08-14,Glucose Meter,92,mmol/L,Creatinine,2020-06-29,2020-01-31,1111
+2020-06-24,Hemoglobin,7.8,umol/L,Creatinine,2021-10-18,2021-04-08,964
+2021-08-21,Hemoglobin,115,umol/L,Hemoglobin,2020-12-13,2020-02-24,914
+2020-07-02,Glucose,98,g/L,Creatinine,2020-09-15,2020-04-08,2887
+2021-11-19,Glucose Meter,5.8,mmol/L,eGFR,2021-03-08,2021-05-29,4604
+2020-05-14,Glucose Meter,122,mmol/L,Bicarbonate,2020-12-01,2020-05-11,3152
+2021-02-25,Glucose Meter,49,mmol/L,phosphate,2021-01-05,2020-05-01,2503
+2020-12-28,Glucose Meter,6.5,mmol/L,Hemoglobin,2020-08-07,2021-11-05,4401
+2021-08-01,Hemoglobin,83,g/L,eGFR,2020-04-28,2021-10-11,629
+2021-12-15,Glucose,85,mmol/L,glucose,2020-07-02,2020-03-06,4232
+2021-06-22,Creatinine,77,mmol/L,glucose,2020-06-05,2020-02-06,721
+2021-11-12,HCO3,102,mmol/L,Bicarbonate,2020-05-15,2021-10-29,2948
+2021-04-07,Hemoglobin,16.5,g/L,Bicarbonate,2021-02-06,2020-04-03,4374
+2020-03-18,HCO3,124,mmol/L,glucose,2020-11-25,2021-12-26,1452
+2021-09-20,Glucose,102,g/L,glucose,2021-02-25,2020-08-01,2250
+2021-01-18,Hemoglobin,1.50,mmol/L,glucose,2021-05-29,2020-05-30,1565
+2021-03-12,Glucose Meter,83,mmol/L,Bicarbonate,2020-11-25,2020-04-03,308
+2021-05-11,eGFR,5.4,mmol/L,glucose,2021-04-19,2020-05-26,2625
+2021-05-24,Creatinine,82,mmol/L,eGFR,2020-02-16,2021-12-30,1481
+2020-02-09,Hemoglobin,88,mmol/L,glucose,2021-01-20,2020-08-04,1401
+2020-03-14,Hemoglobin,8.9,g/L,eGFR,2020-07-19,2020-07-16,4425
+2020-02-18,Hemoglobin,128,g/L,Creatinine,2021-01-05,2020-03-08,1029
+2020-02-13,Glucose,48,mmol/L,Bicarbonate,2020-03-12,2021-07-09,2822
+2021-03-20,C-Reactive Protein (CRP),40,g/L,Creatinine,2021-10-05,2021-05-14,3019
+2021-05-15,Glucose Meter,69,mmol/L,Creatinine,2021-08-19,2021-09-11,646
+2020-07-24,Glucose Meter,0.90,g/L,glucose,2020-12-31,2020-10-05,1613
+2020-04-02,Creatinine,81,mL/min/1.73m2,Bicarbonate,2020-12-07,2020-06-24,404
+2021-02-16,eGFR,81,umol/L,glucose,2020-11-26,2020-10-02,2065
+2020-09-02,Glucose,0.82,mmol/L,phosphate,2021-05-16,2021-02-25,4393
+2021-06-06,Glucose,73,umol/L,Hemoglobin,2021-12-18,2020-03-14,1145
+2020-08-24,HCO3,27,g/L,glucose,2020-10-23,2021-08-20,235
+2020-08-12,Glucose Meter,70,umol/L,Hemoglobin,2021-09-09,2020-02-10,2324
+2021-03-09,Creatinine,7.6,mmol/L,glucose,2020-01-04,2020-12-23,3474
+2020-04-12,Glucose Meter,7.8,g/L,Creatinine,2020-07-17,2020-10-22,3334
+2021-12-26,Hemoglobin,5.0,mmol/L,glucose,2020-11-28,2020-04-02,10
+2021-10-26,Phosphate,75,mmol/L,phosphate,2020-04-14,2020-09-15,1464
+2020-11-17,Creatinine,134,mmol/L,Bicarbonate,2020-07-20,2020-01-13,864
+2020-02-08,Creatinine,141,g/L,eGFR,2020-08-14,2021-11-25,1534
+2020-01-18,Hemoglobin,93,g/L,glucose,2021-11-05,2020-06-30,1087
+2021-07-31,Hemoglobin,28,mmol/L,Hemoglobin,2020-09-07,2020-08-25,3221
+2020-01-17,Hemoglobin,12.5,mmol/L,Hemoglobin,2021-12-21,2020-05-01,273
+2021-01-12,Glucose,7.5,mmol/L,glucose,2021-02-09,2021-10-19,1903
+2020-09-05,Glucose,34,umol/L,glucose,2021-01-13,2020-09-30,3754
+2021-12-26,Hemoglobin,3.2,mL/min/1.73m2,phosphate,2020-11-27,2021-04-26,2738
+2021-01-03,Glucose,81,mL/min/1.73m2,phosphate,2021-10-26,2020-11-06,4122
+2020-12-16,Creatinine,53,g/L,Hemoglobin,2021-06-28,2020-07-04,4290
+2021-08-09,"Glucose, Random",87,mL/min/1.73m2,Hemoglobin,2021-07-08,2021-10-14,321
+2021-10-18,Creatinine,97,mmol/L,Hemoglobin,2021-02-25,2020-05-05,473
+2021-03-26,Hemoglobin,60,mmol/L,Creatinine,2020-12-30,2020-04-03,873
+2020-02-03,eGFR,9.1,g/L,Hemoglobin,2020-02-23,2021-06-24,2436
+2021-02-27,"Glucose, Random",6.2,g/L,Creatinine,2021-09-08,2021-01-27,1051
+2021-09-10,Creatinine,7.8,mmol/L,glucose,2020-01-15,2020-02-19,2667
+2020-07-21,Glucose Meter,8.7,g/L,eGFR,2021-10-22,2020-09-10,2984
+2020-09-17,Hemoglobin,123,mmol/L,eGFR,2021-10-23,2021-12-15,3230
+2020-03-23,Hemoglobin,15,mmol/L,Hemoglobin,2021-02-25,2021-09-17,2078
+2021-03-10,Creatinine,69,g/L,eGFR,2021-03-26,2021-06-30,82
+2020-09-23,Glucose Meter,34,mmol/L,glucose,2020-08-26,2020-06-17,543
+2021-11-28,Glucose,9.3,mmol/L,Hemoglobin,2020-12-09,2020-02-23,1093
+2020-01-22,Hemoglobin,114,mmol/L,Creatinine,2021-04-21,2020-07-24,1405
+2020-02-11,Hemoglobin,165,mmol/L,glucose,2021-02-17,2020-11-13,557
+2020-10-15,Glucose,23,g/L,Hemoglobin,2021-05-10,2020-06-18,915
+2021-10-26,Hemoglobin,6.4,mmol/L,glucose,2020-05-04,2020-03-16,4232
+2021-01-04,Glucose Meter,16,mL/min/1.73m2,Hemoglobin,2021-12-21,2020-08-14,1875
+2020-09-05,Hemoglobin,110,mmol/L,Hemoglobin,2020-08-12,2020-06-24,1356
+2020-06-25,eGFR,95,g/L,Creatinine,2020-01-03,2020-05-08,1087
+2021-04-20,HCO3,11.6,mmol/L,Hemoglobin,2021-02-16,2020-11-24,3195
+2021-05-31,Glucose Meter,92,mmol/L,glucose,2020-05-23,2020-10-22,3667
+2020-06-12,Creatinine,9.3,mmol/L,glucose,2021-01-12,2021-04-21,2580
+2020-09-10,"Protein / Creatinine Ratio, Urine",82,g/L,Hemoglobin,2021-04-22,2021-05-06,1715
+2020-03-14,"Glucose, Random",3.3,mmol/L,Hemoglobin,2021-02-09,2020-10-19,1351
+2021-11-17,Glucose,6.0,g/L,Hemoglobin,2020-08-02,2021-12-31,4650
+2021-02-22,"Glucose, Random",41,g/L,Creatinine,2020-03-03,2020-07-13,3056
+2020-09-10,Creatinine,83,mL/min/1.73m2,glucose,2021-03-25,2020-01-21,4687
+2020-11-05,HCO3,48,G/L,eGFR,2020-01-10,2021-03-04,2933
+2021-04-22,Creatinine,108,g/L,glucose,2021-10-02,2021-10-19,2979
+2020-09-28,Creatinine,156,g/L,eGFR,2021-12-20,2020-09-12,4580
+2020-09-22,Hemoglobin,109,mmol/L,Hemoglobin,2020-01-03,2020-07-27,911
+2021-06-28,Glucose Meter,120,g/L,Hemoglobin,2020-12-07,2021-12-03,4388
+2021-12-13,Glucose Meter,48,mmol/L,C-reactive protein,2020-02-27,2020-09-04,3922
+2020-07-24,eGFR,108,g/L,Creatinine,2020-03-11,2020-11-03,3757
+2020-07-03,HCO3,98,umol/L,eGFR,2020-03-27,2021-06-24,3652
+2021-07-07,Glucose Meter,6.8,mL/min/1.73m2,Bicarbonate,2021-01-01,2021-11-22,4536
+2021-10-02,Hemoglobin,96,g/L,Bicarbonate,2020-06-06,2021-11-24,4033
+2020-05-25,eGFR,8.0,umol/L,eGFR,2020-08-01,2021-10-27,2464
+2020-02-08,Glucose Meter,85,mmol/L,eGFR,2020-08-14,2020-05-06,1656
+2021-11-27,Glucose Meter,117,g/L,Creatinine,2021-03-21,2020-09-08,1653
+2021-11-16,HCO3,72,mmol/L,eGFR,2020-01-30,2021-04-20,1957
+2021-03-16,Glucose Meter,18,mmol/L,Hemoglobin,2020-02-06,2021-03-30,2289
+2021-09-30,eGFR,12.2,g/L,Hemoglobin,2020-12-20,2021-03-24,3097
+2021-11-06,Glucose,80,mmol/L,glucose,2021-05-15,2021-11-15,3176
+2022-01-06,"Cholesterol, Total",0.94,mmol/L,glucose,2021-01-29,2021-05-15,3930
+2021-02-26,Hemoglobin,119,umol/L,eGFR,2021-06-15,2020-04-03,3095
+2021-12-14,Hemoglobin,69,g/L,Creatinine,2020-11-30,2021-03-24,1573
+2021-05-17,C-Reactive Protein (CRP),4.4,umol/L,eGFR,2021-03-15,2021-07-08,175
+2020-11-18,Hemoglobin,17.8,mg/L,eGFR,2021-11-20,2020-09-13,3368
+2020-03-22,"Cholesterol, Total",131,g/L,glucose,2021-11-30,2021-02-23,2711
+2020-01-25,Creatinine,26.1,mmol/L,Hemoglobin,2021-07-29,2021-11-17,1087
+2021-02-15,HCO3,39,mmol/L,Creatinine,2020-07-30,2021-04-28,1652
+2021-07-18,"Cholesterol, Total",114,umol/L,glucose,2020-03-01,2021-06-02,1811
+2020-02-12,Glucose Meter,8.3,g/L,phosphate,2020-03-11,2020-08-08,4014
+2021-04-20,Glucose Meter,97,mmol/L,eGFR,2021-09-16,2021-08-17,2750
+2020-02-07,Glucose Meter,54,g/L,glucose,2021-11-07,2021-03-12,1344
+2020-07-02,Glucose Meter,5.9,mmol/L,Hemoglobin,2020-12-02,2021-06-08,2530
+2021-08-01,Hemoglobin,97,mmol/L,glucose,2021-09-04,2020-12-04,3142
+2021-12-13,Glucose,9.2,mL/min/1.73m2,Creatinine,2020-07-30,2020-10-05,2784
+2020-02-06,Creatinine,53,mmol/L,glucose,2020-01-04,2020-01-20,1388
+2021-09-18,"Glucose, Random",143,mmol/L,glucose,2020-08-20,2020-06-01,2103
+2021-02-06,Glucose,178,g/L,Hemoglobin,2021-03-25,2021-01-20,2232
+2021-05-08,Hemoglobin,153,mL/min/1.73m2,Bicarbonate,2021-05-06,2021-01-15,751
+2020-07-29,Hemoglobin,51,mL/min/1.73m2,Hemoglobin,2021-05-15,2020-05-13,1414
+2021-10-29,Creatinine,102,g/L,Creatinine,2020-03-06,2021-09-16,355
+2020-02-11,Glucose Meter,5.9,mmol/L,glucose,2020-01-29,2020-02-26,1946
+2020-06-24,"Hemoglobin, Arterial",54,mmol/L,C-reactive protein,2021-07-07,2020-09-30,4236
+2021-03-07,eGFR,6.4,mL/min/1.73m2,Creatinine,2020-09-30,2021-04-28,4337
+2020-02-02,Glucose Meter,99,umol/L,Hemoglobin,2021-12-02,2020-05-12,2007
+2020-12-31,Hemoglobin,22,umol/L,glucose,2020-08-16,2021-12-12,4031
+2020-05-06,Glucose Meter,82,mL/min/1.73m2,eGFR,2020-03-23,2022-01-10,1504
+2020-05-28,Creatinine,101,mmol/L,Bicarbonate,2021-07-25,2020-06-04,3670
+2021-04-02,Glucose Meter,6.7,mmol/L,glucose,2021-10-07,2020-08-16,2221
+2021-11-08,Glucose,6.7,g/L,Hemoglobin,2021-02-15,2021-07-03,4580
+2021-06-20,Hemoglobin,119,mmol/L,Hemoglobin,2020-12-24,2021-10-14,1790
+2021-06-18,Creatinine,95,mmol/L,Hemoglobin,2020-01-18,2020-12-24,2834
+2021-01-10,Glucose Meter,161,umol/L,glucose,2021-12-08,2021-07-02,140
+2020-10-05,eGFR,105,mmol/L,glucose,2020-04-25,2020-07-15,3097
+2021-04-28,eGFR,5.5,mmol/L,Creatinine,2020-05-01,2021-06-30,1937
+2021-01-01,eGFR,69,mL/min/1.73m2,Hemoglobin,2020-05-06,2020-06-15,2468
+2021-06-07,Phosphate,43.7,umol/L,Hemoglobin,2021-12-22,2021-03-15,111
+2021-10-21,Glucose Meter,101,umol/L,eGFR,2020-12-06,2021-06-26,278
+2020-10-14,Hemoglobin,102,umol/L,eGFR,2020-10-31,2022-01-10,2149
+2021-10-24,Hemoglobin,7.4,mg/L,Bicarbonate,2020-01-24,2020-09-10,3667
+2021-06-11,Glucose Meter,174,mmol/L,glucose,2021-05-31,2021-09-10,1539
+2020-07-10,Glucose Meter,20,g/L,glucose,2021-07-29,2021-10-01,38
+2020-01-24,Glucose Meter,55,mmol/L,eGFR,2021-01-06,2020-07-09,931
+2020-12-16,HCO3,5.1,mmol/L,Bicarbonate,2020-01-24,2022-01-26,6
+2021-01-06,Creatinine,7.6,mmol/L,eGFR,2020-07-25,2021-11-18,2352
+2021-05-20,Hemoglobin,24,mL/min/1.73m2,glucose,2020-05-17,2020-10-04,680
+2020-02-09,Glucose Meter,104,mmol/L,glucose,2020-10-15,2022-01-13,3665
+2020-04-14,Phosphate,7.6,umol/L,eGFR,2021-01-25,2022-02-09,955
+2020-12-12,eGFR,8.9,mmol/L,Hemoglobin,2020-02-07,2021-11-06,478
+2020-03-23,HCO3,7.9,mmol/L,eGFR,2021-03-03,2022-01-11,2113
+2021-09-15,eGFR,8.3,g/L,Hemoglobin,2020-09-18,2020-06-06,4646
+2021-11-13,Hemoglobin,7.4,mL/min/1.73m2,glucose,2020-01-07,2022-01-21,668
+2020-03-27,Glucose,30,g/L,glucose,2020-04-03,2022-03-11,2695
+2020-12-23,eGFR,167,mmol/L,Hemoglobin,2020-04-20,2021-12-17,2669
+2020-02-20,Creatinine,109,mmol/L,Hemoglobin,2021-10-14,2021-11-25,1669
+2020-12-18,Hemoglobin,10.8,g/L,C-reactive protein,2020-08-04,2020-09-19,3080
+2020-02-19,Glucose Meter,8.9,g/L,glucose,2020-11-09,2021-03-02,4374
+2020-02-08,"Bicarbonate, Bld",121,mmol/L,Hemoglobin,2021-03-08,2021-02-08,4325
+2020-04-18,eGFR,27,mmol/L,Hemoglobin,2020-05-07,2020-03-14,770
+2021-11-16,eGFR,21,umol/L,glucose,2020-04-13,2021-06-02,1294
+2022-01-27,Hemoglobin,115,mmol/L,Creatinine,2021-03-16,2021-02-23,1481
+2020-05-01,Glucose,9.5,mmol/L,Hemoglobin,2020-03-01,2021-07-12,3188
+2020-05-15,HCO3,7.0,g/L,Hemoglobin,2020-08-26,2021-11-03,2749
+2020-12-29,Albumin,22,mmol/L,Creatinine,2021-07-30,2020-08-14,4428
+2021-01-14,Creatinine,67,mmol/L,Hemoglobin,2020-10-06,2020-12-02,1103
+2021-10-29,eGFR,0.84,umol/L,Hemoglobin,2021-02-20,2021-04-17,2167
+2021-07-24,Creatinine,64,umol/L,Creatinine,2021-02-17,2020-05-14,3234
+2021-11-09,Creatinine,44,umol/L,Creatinine,2021-09-30,2021-01-01,1623
+2021-05-28,eGFR,13.9,g/L,glucose,2020-02-16,2021-09-24,3738
+2020-08-02,Glucose,18.8,mmol/L,Hemoglobin,2020-04-20,2021-08-30,4288
+2020-11-13,eGFR,89,mmol/L,glucose,2021-06-29,2021-12-01,2913
+2021-08-08,eGFR,95,mL/min/1.73m2,glucose,2021-12-21,2020-10-08,3158
+2021-11-17,Glucose,79,g/L,glucose,2020-06-29,2020-10-28,460
+2020-08-29,Hemoglobin,105,mmol/L,Creatinine,2020-02-11,2020-05-12,4477
+2021-05-15,Glucose Meter,100,mmol/L,eGFR,2020-09-05,2021-09-10,304
+2020-08-21,Glucose Meter,1.02,mmol/L,phosphate,2021-09-30,2021-08-11,498
+2020-04-27,Glucose Meter,9.3,mmol/L,phosphate,2021-10-23,2021-01-07,9
+2021-01-11,Hemoglobin,4.9,mmol/L,Hemoglobin,2020-02-24,2021-01-29,1679
+2021-05-11,C-Reactive Protein (CRP),80,mmol/L,eGFR,2021-03-08,2020-06-26,2340
+2021-08-15,Phosphate,75,mL/min/1.73m2,Hemoglobin,2020-12-13,2020-02-04,2151
+2020-03-04,Creatinine,102,mL/min/1.73m2,Creatinine,2021-05-10,2020-06-10,2034
+2021-11-08,Phosphate,102,mmol/L,Creatinine,2020-12-02,2020-07-08,3990
+2020-08-23,Hemoglobin,8.4,g/L,Creatinine,2021-03-27,2021-12-16,980
+2021-08-10,C-Reactive Protein (CRP),71,mmol/L,eGFR,2021-10-09,2020-08-01,374
+2021-02-06,Hemoglobin,9.9,mL/min/1.73m2,eGFR,2020-01-31,2021-08-04,1168
+2020-12-09,eGFR,129,umol/L,glucose,2021-03-08,2021-07-30,958
+2021-06-30,eGFR,1.07,g/L,Creatinine,2020-04-14,2021-06-30,2019
+2020-06-07,Glucose Meter,69,mmol/L,glucose,2020-05-06,2021-09-07,318
+2021-05-26,HCO3,100,mmol/L,eGFR,2021-01-12,2021-02-05,3542
+2021-10-24,Glucose Meter,70,g/L,Bicarbonate,2021-09-30,2021-05-28,2437
+2020-12-07,eGFR,111,mmol/L,glucose,2020-11-18,2020-11-21,1943
+2020-12-30,Glucose,4.9,g/L,eGFR,2021-08-30,2021-09-18,2473
+2020-01-17,Phosphate,131,g/L,eGFR,2021-01-21,2021-04-05,2014
+2020-03-13,Hemoglobin,15.5,mmol/L,glucose,2020-07-14,2021-02-04,3146
+2021-10-09,HCO3,5.5,mmol/L,glucose,2021-10-11,2020-10-28,1148
+2021-03-11,Creatinine,108,g/L,Creatinine,2021-11-04,2021-02-04,2034
+2020-04-08,HCO3,95,umol/L,glucose,2020-09-05,2021-09-25,1348
+2020-03-26,Glucose,112,mmol/L,Hemoglobin,2020-03-27,2020-06-26,2250
+2021-02-10,Glucose Meter,93,mL/min/1.73m2,glucose,2021-01-10,2020-07-14,2712
+2021-08-01,Glucose Meter,22,mmol/L,eGFR,2020-09-23,2022-08-10,873
+2021-02-10,eGFR,64,g/L,eGFR,2020-01-03,2021-04-19,2301
+2020-06-11,C-Reactive Protein (CRP),6.6,umol/L,Hemoglobin,2021-06-22,2020-07-03,3919
+2020-04-05,Creatinine,80,g/L,Hemoglobin,2020-09-25,2020-06-19,628
+2020-03-03,Creatinine,10,mmol/L,Creatinine,2021-09-03,2020-03-17,1034
+2020-09-20,Glucose Meter,121,mmol/L,eGFR,2021-01-15,2020-04-15,140
+2021-11-07,Phosphate,113,mmol/L,eGFR,2020-01-26,2020-02-05,4274
+2021-07-31,Creatinine,4.8,g/L,Hemoglobin,2020-03-21,2020-07-14,1720
+2020-08-17,Glucose,112,mmol/L,Hemoglobin,2020-06-10,2020-05-22,3857
+2020-09-18,Glucose,0.84,g/L,Creatinine,2020-10-23,2021-01-29,930
+2021-03-23,Hemoglobin,7.5,g/L,Creatinine,2020-03-06,2020-10-10,3239
+2021-08-11,Glucose Meter,87,mL/min/1.73m2,glucose,2020-12-01,2021-08-21,992
+2020-04-20,Glucose,0.32,mmol/L,eGFR,2020-04-10,2022-01-07,3455
+2020-12-10,Glucose Meter,76,mmol/L,eGFR,2021-01-28,2020-11-24,2369
+2021-11-29,Creatinine,38,mmol/L,phosphate,2020-12-02,2021-06-19,397
+2020-02-10,Glucose,221,mmol/L,glucose,2021-06-22,2020-04-16,3216
+2021-10-28,Glucose Meter,148,mmol/L,Hemoglobin,2021-08-09,2020-02-08,4298
+2020-08-29,Hemoglobin,158,g/L,glucose,2021-10-20,2021-09-22,866
+2021-10-17,Phosphate,7.1,g/L,glucose,2021-05-15,2021-05-25,394
+2020-06-05,eGFR,80,mmol/L,eGFR,2020-08-27,2021-04-05,1704
+2020-03-13,C-Reactive Protein (CRP),54,mL/min/1.73m2,Creatinine,2020-07-08,2020-08-21,377
+2021-01-09,Hemoglobin,39,mmol/L,eGFR,2020-06-04,2020-09-29,3920
+2021-05-26,eGFR,82,mmol/L,eGFR,2021-11-17,2020-10-29,1403
+2020-05-31,Glucose,5.4,mmol/L,eGFR,2021-12-21,2020-07-20,3357
+2020-12-27,Hemoglobin,100,umol/L,glucose,2020-09-02,2021-04-06,2001
+2021-08-12,Glucose Meter,149,g/L,Creatinine,2020-02-02,2020-03-18,1048
+2021-09-30,Hemoglobin,81,umol/L,glucose,2021-12-28,2021-12-17,2366
+2021-05-19,Creatinine,44,mmol/L,glucose,2020-09-29,2020-10-02,4630
+2021-10-20,Glucose,13.5,mmol/L,Creatinine,2021-01-10,2021-01-13,312
+2021-10-20,Glucose Meter,94,umol/L,Creatinine,2020-06-04,2020-01-31,2117
+2020-11-05,Glucose Meter,21,umol/L,Bicarbonate,2021-10-06,2021-06-08,3747
+2020-12-11,Glucose Meter,120,mmol/L,Creatinine,2020-09-23,2021-07-17,1477
+2021-07-07,Hemoglobin,145,mmol/L,glucose,2020-07-02,2020-12-05,4428
+2021-04-30,eGFR,102,mmol/L,glucose,2020-01-01,2021-03-15,2567
+2021-05-27,Phosphate,44,mmol/L,Creatinine,2020-09-14,2022-01-13,1159
+2021-11-25,Hemoglobin,5.6,g/L,glucose,2020-08-17,2022-02-02,4283
+2021-02-22,Creatinine,44,mL/min/1.73m2,eGFR,2021-09-28,2021-04-16,1652
+2020-05-28,Glucose Meter,9.7,mL/min/1.73m2,eGFR,2020-12-20,2020-08-06,466
+2021-01-17,Glucose,88,mmol/L,Hemoglobin,2021-03-15,2020-12-30,2329
+2021-03-12,Glucose Meter,53,g/L,eGFR,2021-08-29,2020-07-22,3556
+2020-12-07,Hemoglobin,57,g/L,phosphate,2020-11-18,2020-12-30,2806
+2020-12-05,Hemoglobin,21,mL/min/1.73m2,eGFR,2021-05-15,2022-01-24,3954
+2020-06-29,Glucose,13.1,umol/L,eGFR,2021-10-04,2021-12-07,2366
+2021-05-17,HCO3,27,mmol/L,glucose,2020-07-10,2020-08-19,4256
+2020-06-24,Glucose Meter,80,mL/min/1.73m2,eGFR,2020-04-06,2021-05-14,3640
+2021-07-19,Creatinine,5.5,g/L,glucose,2020-03-07,2021-02-01,4487
+2021-08-25,eGFR,105,mmol/L,glucose,2021-11-12,2020-05-17,4128
+2020-12-02,Glucose Meter,91,mL/min/1.73m2,Hemoglobin,2020-04-14,2021-02-24,1705
+2021-03-12,Hemoglobin,28,g/L,Creatinine,2021-07-15,2021-01-20,4316
+2021-02-02,HCO3,1.04,mmol/L,phosphate,2021-04-21,2020-02-26,3632
+2021-02-27,Glucose Meter,6.4,mmol/L,Hemoglobin,2020-11-28,2021-06-10,839
+2020-11-30,HCO3,18,mL/min/1.73m2,Bicarbonate,2021-08-24,2020-08-03,1813
+2020-07-09,Creatinine,71,g/L,eGFR,2021-08-25,2021-01-13,3055
+2020-08-14,Creatinine,10.2,g/L,Hemoglobin,2020-08-19,2020-08-06,743
+2020-07-17,Glucose Meter,10.3,g/L,Hemoglobin,2021-10-27,2021-05-12,2295
+2021-07-16,eGFR,87,g/L,glucose,2020-04-11,2020-12-31,911
+2021-11-26,Glucose Meter,7.4,g/L,eGFR,2021-05-30,2020-11-07,4379
+2021-09-08,Glucose,22,umol/L,Hemoglobin,2021-06-15,2020-11-13,7
+2020-05-29,Glucose,14.9,mmol/L,glucose,2020-03-09,2021-08-19,2228
+2020-06-16,eGFR,35,mmol/L,Hemoglobin,2020-09-26,2020-06-09,3998
+2021-03-28,eGFR,58,mmol/L,eGFR,2020-07-14,2020-04-10,4565
+2021-05-01,Hemoglobin,16.8,umol/L,Creatinine,2020-11-05,2021-11-10,1795
+2021-06-19,Hemoglobin,119,mmol/L,eGFR,2021-05-24,2020-03-20,4195
+2021-01-30,eGFR,6.3,g/L,Bicarbonate,2020-02-06,2020-09-23,3883
+2021-05-11,eGFR,92,umol/L,Hemoglobin,2021-07-21,2020-08-10,592
+2020-06-29,eGFR,32,g/L,glucose,2020-07-25,2022-01-10,3777
+2021-10-21,Hemoglobin,0.71,mmol/L,Bicarbonate,2021-06-28,2021-03-04,1395
+2021-12-05,Creatinine,7.2,mL/min/1.73m2,eGFR,2020-09-27,2021-08-24,3302
+2020-12-09,Glucose Meter,114,mL/min/1.73m2,glucose,2021-01-05,2020-12-04,837
+2021-12-28,Hemoglobin,6.1,umol/L,Hemoglobin,2021-09-07,2021-11-10,823
+2021-03-16,eGFR,123,mmol/L,eGFR,2021-03-01,2022-01-13,2640
+2020-11-19,Glucose,21,mL/min/1.73m2,glucose,2020-04-03,2021-04-12,4065
+2020-01-16,Creatinine,6.2,umol/L,Cholesterol,2021-05-11,2020-12-12,2913
+2021-06-28,Hemoglobin,79,mL/min/1.73m2,Hemoglobin,2021-11-19,2022-02-13,1591
+2020-08-17,Creatinine,50,g/L,Hemoglobin,2021-11-05,2020-07-06,781
+2020-10-26,Glucose Meter,10.7,mmol/L,glucose,2021-02-25,2021-02-17,3957
+2020-07-20,Hemoglobin,78,g/L,Creatinine,2020-09-29,2020-06-18,2381
+2020-08-17,Creatinine,26,mL/min/1.73m2,Albumin,2020-02-05,2020-04-15,414
+2020-11-20,Creatinine,123,g/L,Hemoglobin,2021-04-15,2020-12-04,4125
+2020-09-30,Glucose Meter,9.3,mmol/L,glucose,2021-03-26,2021-11-26,1568
+2020-01-03,Hemoglobin,123,mL/min/1.73m2,glucose,2020-09-09,2021-03-03,2871
+2020-11-26,Glucose Meter,28,mmol/L,glucose,2021-06-01,2021-12-20,3113
+2020-11-28,Glucose Meter,10.9,g/L,Hemoglobin,2021-05-08,2020-11-25,749
+2021-09-07,HCO3,133,g/L,glucose,2020-05-04,2020-12-01,4310
+2020-06-12,Glucose Meter,25,mmol/L,Protein/creatinine Ratio,2021-12-12,2021-06-14,2108
+2020-12-07,Hemoglobin,74,mmol/L,Creatinine,2020-02-09,2021-08-23,4374
+2020-11-16,Glucose Meter,5.3,g/L,Hemoglobin,2021-12-08,2020-08-23,919
+2020-11-08,Glucose,4.8,g/L,glucose,2021-12-30,2020-08-23,1736
+2020-03-14,Hemoglobin,109,mmol/L,eGFR,2021-06-15,2021-10-10,2397
+2020-07-24,Creatinine,83,umol/L,Hemoglobin,2021-03-04,2021-02-05,668
+2021-08-12,Glucose,47.0,mmol/L,glucose,2021-11-22,2020-10-08,3197
+2020-09-16,Glucose Meter,5.9,umol/L,glucose,2020-05-04,2021-08-25,4583
+2021-02-22,HCO3,66,g/L,eGFR,2021-10-09,2021-07-10,1094
+2020-10-17,Glucose,23,g/L,Creatinine,2021-02-06,2021-12-29,2679
+2020-07-16,Glucose Meter,581,mmol/L,glucose,2020-02-26,2020-02-23,3881
+2020-09-27,Hemoglobin,50,mmol/L,glucose,2020-10-01,2020-02-19,1609
+2020-08-15,eGFR,7.2,umol/L,Creatinine,2020-02-16,2021-12-11,3617
+2020-10-29,Creatinine,75,mmol/L,eGFR,2020-11-28,2021-06-01,601
+2020-03-06,Hemoglobin,64,mmol/L,Creatinine,2020-08-11,2020-08-10,1021
+2021-09-02,Hemoglobin,97,mmol/L,Hemoglobin,2021-01-25,2020-09-03,2602
+2021-02-20,Hemoglobin,82,g/L,glucose,2020-07-22,2020-03-25,1145
+2020-08-17,Glucose Meter,98,g/L,glucose,2021-05-11,2020-01-09,4089
+2021-04-01,Glucose Meter,83,mL/min/1.73m2,Hemoglobin,2021-12-02,2020-05-23,3675
+2021-01-25,Glucose Meter,91,mL/min/1.73m2,eGFR,2020-05-29,2020-11-11,2458
+2020-03-18,Hemoglobin,120,mL/min/1.73m2,eGFR,2020-08-12,2020-12-15,1867
+2021-09-09,Glucose Meter,88,mmol/L,C-reactive protein,2021-10-29,2021-03-04,3889
+2021-02-12,HCO3,31,umol/L,glucose,2021-04-01,2021-05-31,4236
+2021-03-05,eGFR,5.2,mmol/L,eGFR,2020-07-30,2021-01-15,522
+2020-12-07,Hemoglobin,22,mmol/L,Bicarbonate,2020-06-02,2021-10-20,1201
+2020-11-25,eGFR,71,umol/L,glucose,2020-09-02,2021-10-29,1515
+2020-08-03,Hemoglobin,87,mmol/L,glucose,2020-11-12,2021-12-09,2565
+2021-04-01,Hemoglobin,10.0,mmol/L,Bicarbonate,2020-07-29,2021-03-17,3193
+2020-06-10,Glucose Meter,12.2,mmol/L,Creatinine,2021-04-25,2020-11-07,2252
+2020-12-12,HCO3,8.9,mL/min/1.73m2,glucose,2020-08-17,2021-03-25,378
+2021-10-03,Phosphate,7.2,mmol/L,Hemoglobin,2021-01-05,2020-02-12,1991
+2021-12-12,eGFR,7.8,mL/min/1.73m2,glucose,2020-12-29,2021-07-06,2732
+2021-10-22,HCO3,118,g/L,glucose,2021-12-11,2020-11-18,3504
+2021-06-10,Glucose Meter,4.2,umol/L,glucose,2021-10-18,2020-07-15,3294
+2021-11-30,Albumin,22,mmol/L,Bicarbonate,2021-09-17,2021-01-11,3101
+2020-07-04,Glucose,7.2,mmol/L,Bicarbonate,2020-09-06,2021-10-21,3556
+2021-11-19,Creatinine,83,g/L,Creatinine,2020-03-10,2021-03-31,4396
+2021-10-29,Albumin,86,mmol/L,glucose,2020-02-06,2021-04-19,2887
+2021-10-16,Hemoglobin,5.3,mL/min/1.73m2,glucose,2021-04-19,2021-11-02,2996
+2020-12-15,HCO3,72,mL/min/1.73m2,glucose,2020-01-16,2020-03-30,2393
+2020-03-19,eGFR,108,umol/L,glucose,2021-03-13,2020-08-13,2321
+2020-04-16,Hemoglobin,151,g/L,glucose,2020-03-04,2020-02-25,2655
+2021-10-21,eGFR,68,mmol/L,glucose,2021-11-18,2021-01-20,1145
+2020-11-25,Glucose Meter,20.1,g/L,Bicarbonate,2021-05-24,2020-08-14,1418
+2021-06-06,Creatinine,33,g/L,Hemoglobin,2021-01-01,2021-05-24,630
+2021-06-01,HCO3,7.4,mmol/L,glucose,2020-04-07,2021-12-03,2327
+2021-12-18,Creatinine,131,mmol/L,Protein/creatinine Ratio,2021-06-15,2021-08-27,2989
+2021-05-17,Phosphate,23,mmol/L,glucose,2021-11-04,2020-01-20,2541
+2021-11-02,Hemoglobin,10.5,mmol/L,Hemoglobin,2021-10-23,2020-03-04,90
+2020-08-03,Hemoglobin,7.3,mmol/L,eGFR,2021-09-24,2021-07-20,2950
+2021-03-24,Hemoglobin,5.1,mmol/L,phosphate,2020-12-21,2021-10-28,3227
+2021-02-11,Glucose Meter,137,mL/min/1.73m2,Hemoglobin,2021-01-30,2021-04-08,1779
+2021-01-15,eGFR,7.7,umol/L,Albumin,2021-09-15,2021-03-16,3508
+2020-08-10,Glucose Meter,25,g/L,Bicarbonate,2020-11-27,2021-04-09,3235
+2020-09-01,Hemoglobin,17.7,mmol/L,Bicarbonate,2021-08-25,2021-04-02,1839
+2021-02-20,HCO3,91,g/L,glucose,2021-03-09,2020-01-24,1470
+2020-07-03,Creatinine,79,mL/min/1.73m2,Cholesterol,2021-06-01,2021-07-09,3918
+2021-05-24,eGFR,39,umol/L,Hemoglobin,2020-01-13,2021-06-18,3642
+2021-06-18,Glucose Meter,93,g/L,glucose,2021-01-29,2020-03-24,749
+2021-12-05,Hemoglobin,142,g/L,Bicarbonate,2020-11-30,2020-06-06,3742
+2021-11-20,HCO3,1.28,g/L,Bicarbonate,2021-02-16,2022-01-27,3806
+2021-06-17,eGFR,101,mmol/L,glucose,2020-09-10,2020-05-30,2940
+2021-07-03,Glucose,93,mg/L,glucose,2021-12-11,2020-02-25,1715
+2020-04-17,Creatinine,50,mmol/L,glucose,2021-05-15,2021-10-08,600
+2021-06-28,Creatinine,6.9,g/L,glucose,2020-02-16,2020-06-30,1969
+2021-01-03,Glucose Meter,191.67,mmol/L,Creatinine,2020-11-09,2021-01-29,4310
+2020-03-28,Creatinine,9.6,mL/min/1.73m2,Bicarbonate,2021-01-29,2021-05-21,2705
+2021-01-03,Glucose Meter,81,mmol/L,Bicarbonate,2020-04-29,2020-06-01,112
+2020-01-26,eGFR,6.5,mmol/L,glucose,2020-01-26,2020-12-02,4425
+2020-08-04,HCO3,111,mL/min/1.73m2,glucose,2021-04-18,2021-08-11,4576
+2020-10-07,HCO3,82,mL/min/1.73m2,Hemoglobin,2020-06-24,2020-03-17,3858
+2021-01-02,eGFR,6.7,g/L,eGFR,2020-02-06,2021-03-31,2014
+2021-08-18,HCO3,4.7,mmol/L,Hemoglobin,2021-07-13,2021-02-04,1990
+2020-09-28,Glucose Meter,71,umol/L,Creatinine,2021-11-05,2020-03-16,2645
+2020-08-12,Glucose Meter,119,umol/L,Creatinine,2021-03-20,2021-11-11,2025
+2021-11-07,Hemoglobin,55,mmol/L,Hemoglobin,2020-10-01,2022-01-07,3153
+2020-12-24,HCO3,7.5,mmol/L,glucose,2021-08-10,2021-06-27,3517
+2020-07-04,Hemoglobin,83,mmol/L,glucose,2020-04-09,2020-07-24,2638
+2020-02-23,Glucose Meter,16.6,umol/L,Creatinine,2021-01-05,2021-02-18,1594
+2021-10-11,HCO3,4,mmol/L,Creatinine,2020-07-23,2020-09-05,882
+2021-04-13,Creatinine,96,umol/L,Creatinine,2020-01-10,2020-10-29,2162
+2020-04-27,Glucose Meter,8.8,g/L,glucose,2021-08-30,2020-08-20,3738
+2020-01-11,eGFR,10.0,mL/min/1.73m2,glucose,2021-01-03,2021-07-10,3163
+2020-02-06,Hemoglobin,51,umol/L,glucose,2020-03-09,2021-11-10,1214
+2021-07-03,Glucose Meter,90,mmol/L,glucose,2021-10-15,2020-06-25,654
+2021-11-08,Hemoglobin,0.69,mL/min/1.73m2,glucose,2020-08-27,2021-06-25,4656
+2020-01-30,eGFR,83,mmol/L,Creatinine,2021-11-19,2021-05-25,3241
+2020-09-28,eGFR,148,mmol/L,glucose,2020-01-09,2020-08-19,3743
+2020-11-29,Glucose Meter,7.9,umol/L,glucose,2020-12-05,2021-02-23,4601
+2020-08-20,Hemoglobin,25,umol/L,glucose,2021-10-02,2020-09-15,3233
+2021-03-19,eGFR,126,mL/min/1.73m2,Creatinine,2020-05-24,2022-01-07,4212
+2021-04-25,Creatinine,86,mmol/L,Hemoglobin,2020-01-20,2021-09-08,331
+2021-03-03,Hemoglobin,15.4,mmol/L,Hemoglobin,2021-03-17,2020-06-02,3621
+2022-01-07,Glucose Meter,84,mmol/L,Creatinine,2021-12-15,2021-12-31,1221
+2020-06-04,eGFR,12.6,mmol/L,glucose,2020-07-10,2020-09-21,456
+2021-05-18,Hemoglobin,51,g/L,glucose,2020-11-04,2021-05-14,1652
+2021-04-19,Hemoglobin,9.7,mL/min/1.73m2,glucose,2020-03-15,2021-07-20,1561
+2020-05-08,Glucose Meter,86,g/L,eGFR,2021-02-05,2021-10-06,4454
+2020-02-13,Creatinine,10.3,umol/L,Hemoglobin,2021-08-27,2020-06-23,1679
+2020-04-25,Hemoglobin,94,g/L,Hemoglobin,2021-11-18,2021-12-31,2630
+2021-08-02,Glucose Meter,107,mmol/L,Hemoglobin,2020-04-26,2021-10-29,631
+2020-12-23,Glucose,11.4,mg/L,glucose,2020-01-30,2021-09-21,4670
+2020-07-02,HCO3,12.2,mmol/L,Bicarbonate,2020-06-09,2020-08-14,2233
+2021-07-09,Creatinine,78,mL/min/1.73m2,glucose,2021-03-08,2021-01-06,1280
+2020-05-31,Glucose Meter,92,mmol/L,Creatinine,2021-05-04,2021-12-19,3109
+2021-04-04,Glucose,22.3,mmol/L,Creatinine,2020-11-13,2020-04-27,2869
+2021-12-01,Hemoglobin,5.6,mL/min/1.73m2,Creatinine,2021-06-30,2021-09-01,2598
+2020-10-19,Hemoglobin,122,mmol/L,Creatinine,2021-09-18,2020-11-30,2774
+2020-06-05,Creatinine,86,g/L,glucose,2021-03-25,2021-05-28,1422
+2021-05-07,Creatinine,27,umol/L,Hemoglobin,2020-12-25,2020-04-24,3068
+2020-06-20,HCO3,94,mmol/L,glucose,2021-02-18,2020-08-21,1042
+2020-12-21,eGFR,7.4,mmol/L,Hemoglobin,2020-06-03,2021-12-02,3740
+2020-12-05,Glucose Meter,5.9,mmol/L,Hemoglobin,2020-02-21,2021-12-15,2698
+2020-11-26,Creatinine,88,g/L,glucose,2021-06-28,2021-01-20,4193
+2020-07-24,eGFR,9.1,umol/L,glucose,2020-08-13,2020-03-19,3529
+2020-03-27,Hemoglobin,109,mmol/L,eGFR,2021-09-02,2021-12-17,2961
+2020-10-13,Hemoglobin,5.1,mmol/L,Creatinine,2020-12-20,2022-02-08,1656
+2020-07-27,Hemoglobin,115,mL/min/1.73m2,Hemoglobin,2021-01-03,2021-12-08,1695
+2020-07-27,Glucose Meter,0.83,mmol/L,Hemoglobin,2020-10-23,2020-07-19,3810
+2021-11-29,Hemoglobin,82,mmol/L,Hemoglobin,2020-05-24,2020-11-02,4544
+2021-04-25,Hemoglobin,128,mmol/L,Hemoglobin,2020-12-21,2021-09-14,892
+2020-08-18,eGFR,1.17,mL/min/1.73m2,glucose,2020-03-06,2020-09-03,4195
+2021-11-22,"Glucose, Random",81,mmol/L,glucose,2020-10-21,2020-01-27,1752
+2021-01-18,Hemoglobin,8.2,mg/L,glucose,2021-04-29,2021-03-12,3441
+2021-10-22,Hemoglobin,39,mL/min/1.73m2,glucose,2020-09-15,2021-12-23,739
+2021-03-31,Glucose Meter,6.5,mmol/L,Hemoglobin,2021-05-12,2020-08-01,1996
+2021-04-25,Glucose,10.2,mg/L,eGFR,2020-03-09,2020-03-26,3097
+2020-01-18,Glucose,206,mL/min/1.73m2,Hemoglobin,2020-08-10,2021-09-14,1749
+2021-06-01,Glucose Meter,120,mL/min/1.73m2,Creatinine,2020-08-21,2020-07-28,1254
+2021-06-30,eGFR,56,mmol/L,Hemoglobin,2021-02-25,2020-06-06,1794
+2020-04-26,Glucose Meter,135,g/L,Hemoglobin,2021-09-26,2021-09-13,3231
+2020-02-23,Hemoglobin,6.4,mL/min/1.73m2,glucose,2020-01-10,2021-06-12,1480
+2021-01-21,Glucose Meter,3.20,mmol/L,Hemoglobin,2021-05-21,2020-03-16,4488
+2021-12-28,HCO3,103,mL/min/1.73m2,glucose,2021-07-16,2021-07-12,2336
+2020-09-29,HCO3,103,mL/min/1.73m2,eGFR,2021-05-25,2020-11-16,3564
+2021-03-24,Glucose Meter,9.7,umol/L,Hemoglobin,2021-02-11,2021-05-14,4449
+2020-08-21,Glucose Meter,83,mmol/L,glucose,2020-12-21,2020-03-14,3499
+2021-10-13,Creatinine,4.3,mmol/L,eGFR,2020-06-09,2021-12-08,856
+2021-07-15,Hemoglobin,9.8,mmol/L,Creatinine,2021-03-25,2020-09-06,1868
+2020-04-04,Glucose,11.5,mL/min/1.73m2,Creatinine,2020-10-25,2021-12-08,4189

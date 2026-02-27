@@ -1,5 +1,6 @@
 import torch
 from torch.utils.data import Dataset, DataLoader
+from sklearn.model_selection import train_test_split
 
 import torch.nn as nn
 
@@ -167,7 +168,7 @@ class LargeTabularTransformer(nn.Module):
         
         # Dimensionality reduction via bottleneck
         self.feature_reduction = nn.Sequential(
-            nn.BatchNorm1d(input_dim),  # Normalize inputs
+            nn.LayerNorm(input_dim),  # Normalize inputs - LayerNorm works with batch size 1
             nn.Linear(input_dim, self.bottleneck_dim),
             nn.LeakyReLU(0.1),
             nn.Dropout(self.dropout),
@@ -319,7 +320,7 @@ class LargeTabularTransformer(nn.Module):
 
 # Define a function to train with validation and early stopping
 def train_with_validation(X_train, y_train, device, epochs=20, batch_size=32, 
-                         validation_split=0.15, early_stopping=5, learning_rate=1e-4):
+                         validation_split=0.15, early_stopping=5, learning_rate=1e-4, model_size='small'):
     """
     Train a transformer model with validation-based early stopping.
     
@@ -371,8 +372,12 @@ def train_with_validation(X_train, y_train, device, epochs=20, batch_size=32,
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
     
-    # Initialize model
-    model = TabularTransformer(input_dim=X_train.shape[1]).to(device)
+    if model_size == 'large':
+        # Initialize LargeTabularTransformer for high-dimensional data
+        model = LargeTabularTransformer(input_dim=X_train.shape[1]).to(device)
+    else:
+        # Initialize TabularTransformer for smaller datasets
+        model = TabularTransformer(input_dim=X_train.shape[1]).to(device)
     
     # Loss function and optimizer
     criterion = nn.CrossEntropyLoss()
