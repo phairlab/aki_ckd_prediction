@@ -40,16 +40,18 @@ def get_cohort_path():
 
 
 def get_labs_paths():
-    """Return (in_hosp_labs_path, in_hosp_vars_path) tuple."""
+    """Return (in_hosp_labs_path, pre_hosp_labs_path) for Alberta score computation.
+
+    pre_hosp_labs_path may be None if the file doesn't exist (e.g. nonsense data).
+    """
     if USE_NONSENSE_DATA:
         base = os.path.join(PROJECT_ROOT, "nonsense_data")
-        return (
-            os.path.join(base, "in-hosp_labs.csv"),
-            os.path.join(base, "in-hosp_vars.csv"),
-        )
+        in_hosp = os.path.join(base, "in-hosp_labs.csv")
+        pre_hosp = os.path.join(base, "pre-hosp_labs.csv")
+        return (in_hosp, pre_hosp if os.path.exists(pre_hosp) else None)
     return (
         os.path.join(SERVER_RAW_DATA_DIR, "in-hosp labs.csv"),
-        os.path.join(SERVER_RAW_DATA_DIR, "in-hosp vars.csv"),
+        os.path.join(SERVER_RAW_DATA_DIR, "pre-hosp labs.csv"),
     )
 
 
