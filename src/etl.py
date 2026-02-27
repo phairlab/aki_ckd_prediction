@@ -1,393 +1,355 @@
-import pandas as pd
-import numpy as np
+"""
+ETL pipeline: raw Hing CSVs -> features.csv + cohort.csv
+
+Reads 9 raw CSV files from the Hing data directory, processes each
+data source (cohort, in-hospital variables, flowsheets, consultations,
+labs, pre-hospital variables/labs/BMI/medication), then merges everything
+into a single features.csv.
+
+This only runs on the secure server (--etl flag). With nonsense data
+the features.csv is already pre-built.
+"""
+
 import os
+import numpy as np
+import pandas as pd
 
-# Print the current working directory
-print(f"Current working directory: {os.getcwd()}")
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+import config
 
-# Change directory to ../../Hing
-os.chdir("Hing")
-print(f"Changed directory to: {os.getcwd()}")
 
-# ETL for AKI->CKD project, 2023
-
-# -----------------
-# cohort and outcome.csv
-
-cohort = pd.read_csv('cohort and outcome.csv') # [4694 rows x 21 columns]
-# ['AdmitDt', 'DischDt', 'SEX', 'AGE_ADMIT', 'total_los', 'stage1_dt', 'stage1_value', 'stage1', 'stage2_dt', 'stage2_value', 'stage2', 'stage3_dt', 'stage3_value', 'stage3', 'higheststage', 'death_date', 'CKD_stage45', 'stroke_af', 'chf_af', 'mi_af', 'id']
-cohort.rename(columns={'id':'patient_id', 'AGE_ADMIT':'age_admit', 'stage1_dt':'stage1_date', 'stage1_value':'stage1_creatinine',
-	'stage2_dt':'stage2_date', 'stage2_value':'stage2_creatinine', 'stage3_dt':'stage3_date', 'stage3_value':'stage3_creatinine',
-	'higheststage':'highest_stage', 'CKD_stage45':'ckd_stage45', 'stroke_af':'stroke_after', 'chf_af':'chf_after', 'mi_af':'mi_after'},
-	inplace=True)
-cohort['admit_date'] = pd.to_datetime(cohort['AdmitDt'], format='%Y-%m-%d')
-cohort['discharge_date'] = pd.to_datetime(cohort['DischDt'], format='%Y-%m-%d')
-cohort['sex'] = (cohort['SEX'] == 'F').astype(int)
-cohort['death_date'] = pd.to_datetime(cohort['death_date'], format='%Y-%m-%d')
-cohort = cohort[['patient_id', 'admit_date', 'discharge_date', 'sex', 'age_admit', 'total_los', 'stage1', 'stage1_date',
-	'stage1_creatinine', 'stage2', 'stage2_date', 'stage2_creatinine', 'stage3', 'stage3_date', 'stage3_creatinine',
-	'highest_stage', 'death_date', 'ckd_stage45', 'stroke_after', 'chf_after', 'mi_after']] # [4694 rows x 21 columns]
-cohort.to_csv('/data/kidney/Sacha/newdata/cohort.csv', index=False)
-
-# -----------------
-# in-hosp vars
+# ---------------------------------------------------------------------------
+# Helper functions
+# ---------------------------------------------------------------------------
 
 def categorize_goals_of_care(goal_text):
-	"""
-	Categorize goals of care text into standardized categories.
-	
-	Args:
-		goal_text (str): The raw goals of care text
-		
-	Returns:
-		str: Categorized goal of care
-	"""
-	if goal_text is None or goal_text == '?':
-		return np.nan
-	
-	goal_mapping = {
-		'Perioperative': 'perioperative',
-		'Acute': 'acute',
-		'Community': 'community',
-		'Transition': 'transition',
-		'ACL': 'alc',
-		'Intensive': 'intensive',
-		'Mobility': 'mobility',
-		'Assessment': 'assessment',
-		'Waiting': 'waiting'
-	}
-	
-	for key, value in goal_mapping.items():
-		if key in goal_text:
-			return value
-	
-	return 'others'
+    if goal_text is None or goal_text == "?":
+        return np.nan
+    goal_mapping = {
+        "Perioperative": "perioperative", "Acute": "acute",
+        "Community": "community", "Transition": "transition",
+        "ACL": "alc", "Intensive": "intensive",
+        "Mobility": "mobility", "Assessment": "assessment",
+        "Waiting": "waiting",
+    }
+    for key, value in goal_mapping.items():
+        if key in goal_text:
+            return value
+    return "others"
 
-# List of common medical services to extract from admission_services column
+
 SERVICE_LIST = [
-	'General Internal Medicine', 'Cardiac Surgery', 'Emergency Medicine', 
-	'Nephrology', 'Neurology', 'Transplant', 'Cardiology', 'Gastroenterology', 
-	'Neurosurgery', 'Surgery', 'Family Medicine', 'Critical Care', 'Trauma', 
-	'Urology', 'General Surgery', 'Orthopedics', 'Specialized Geriatrics', 
-	'Otolaryngology', 'Stroke', 'Ear Nose and Throat', 'ICU', 'Transplant', 
-	'Plastic Surgery', 'Hematology'
+    "General Internal Medicine", "Cardiac Surgery", "Emergency Medicine",
+    "Nephrology", "Neurology", "Transplant", "Cardiology", "Gastroenterology",
+    "Neurosurgery", "Surgery", "Family Medicine", "Critical Care", "Trauma",
+    "Urology", "General Surgery", "Orthopedics", "Specialized Geriatrics",
+    "Otolaryngology", "Stroke", "Ear Nose and Throat", "ICU", "Transplant",
+    "Plastic Surgery", "Hematology",
 ]
 
-# Load and process in-hospital variables
-index_vars = pd.read_csv('in-hosp vars.csv')  # [4694 rows x 23 columns]
-print(f"Columns in index_vars before processing: {index_vars.columns.tolist()}")
-
-# Standardize column names to lowercase and snake_case
-column_rename_map = {
-	'id': 'patient_id', 
-	# 'icu_inhosp': 'icu', 
-	'Cardiac_catheterization': 'cardiac_catheterization',
-	'Mechanical_ventilation': 'mechanical_ventilation', 
-	'OT_assessment': 'ot_assessment', 
-	'PT_assessment': 'pt_assessment'
-}
-index_vars.rename(columns=column_rename_map, inplace=True)
-
-# Process goals of care
-index_vars['goals_of_care'] = index_vars['goals_of_care'].fillna('?')
-index_vars['goals_of_care'] = index_vars['goals_of_care'].apply(categorize_goals_of_care)
-
-# Create binary columns for each goal of care category
-goal_categories = ['acute', 'community', 'transition', 'others', 'intensive', 
-				  'mobility', 'assessment', 'perioperative']
-for category in goal_categories:
-	index_vars[f'goal_{category}'] = (index_vars['goals_of_care'] == category).astype(int)
-
-# Convert COVID test result to binary
-index_vars['covid_test_result'] = (index_vars['covid_test_result'] == 'Positive').astype(int)
-
-# Create binary columns for each medical service
-for service in SERVICE_LIST:
-	service_col = service.lower().replace(' ', '_')
-	print(service, service_col)
-	# Case-insensitive partial match using str.contains
-	index_vars[service_col] = index_vars['admission_services'].str.lower().str.contains(service.lower(), na=False).astype(int)
-
-# Extract unique medical services by splitting on commas
-all_services = []
-for services_str in index_vars['admission_services'].dropna():
-	services = [service.strip() for service in services_str.split(',')]
-	all_services.extend(services)
-
-# Get unique services and sort them
-unique_services = sorted(set(all_services))
-
-# Print unique services
-print("\nUnique Medical Services:")
-for service in unique_services:
-	print(f"  - {service}")
-
-# Optionally save to file
-with open('unique_medical_services.txt', 'w') as f:
-	for service in unique_services:
-		f.write(f"{service}\n")
-
-print(f"\nTotal unique medical services: {len(unique_services)}")
-
-# Calculate percentage of people who are positive for dialysis
-dialysis_count = index_vars['dialysis'].sum()
-total_count = len(index_vars)
-dialysis_percentage = (dialysis_count / total_count) * 100
-
-print(f"Dialysis positive: {dialysis_count} patients ({dialysis_percentage:.2f}%)")
-
-# assert False
-
-# Print diagnostic information
-print("Service column statistics:")
-for service in SERVICE_LIST:
-	service_col = service.lower().replace(' ', '_')
-	count = index_vars[service_col].sum()
-	print(f"  {service_col}: {count} patients")
-
-print(f"ICU patients: {index_vars['icu'].sum()}")
-
-
-# Select and reorder columns
-columns_to_keep = ['patient_id', 'icu_inhosp', 'icu'] + \
-				  [f'goal_{cat}' for cat in goal_categories] + \
-				  ['cardiac_surgery', 'insulin', 'beta_blocker', 'covid_test_result', 
-				   'smoke', 'cardiac_catheterization', 'ami', 'chf', 'dialysis', 
-				   'mechanical_ventilation', 'renal_ultralsound', 'angiogram', 
-				   'foley_catheter', 'ot_assessment', 'pt_assessment', 
-				   'obstructive_uropathy', 'sepsis', 'admission_services'] + \
-				  [service.lower().replace(' ', '_') for service in SERVICE_LIST]
-
-index_vars = index_vars[columns_to_keep]
-
-# Add prefix to all columns except patient_id
-index_vars = index_vars.add_prefix('index_vars:')
-index_vars.rename(columns={'index_vars:patient_id': 'patient_id'}, inplace=True)
-
-# Final verification
-print(f"Final ICU patients: {index_vars['index_vars:icu'].sum()}")
-print(f"Final dataframe shape: {index_vars.shape}")
-
-# Save processed data
-index_vars.to_csv('/data/kidney/Sacha/newdata/index_vars.csv', index=False)
-
-
-# assert False
-
-# -----------------
-# in-hosp flowsheet records
 
 def record_name(n):
-	return 'arterial_line_bp' if 'ARTERIAL' in n else 'bp' if 'PRESSURE' in n else 'heart_rate_ecg' if 'ECG' in n\
-else 'oxygen_therapy' if 'OXYGEN' in n else 'bar_bmi' if 'BAR BMI' in n else 'bmi' if 'BMI' in n else 'max_heart_rate' if\
-'MAC HEART RATE' in n else 'aortic_heart_rate' if 'AORTIC' in n else 'aware' if 'AWARE' in n else np.nan if n == '?' else 'others'
+    if "ARTERIAL" in n: return "arterial_line_bp"
+    if "PRESSURE" in n: return "bp"
+    if "ECG" in n: return "heart_rate_ecg"
+    if "OXYGEN" in n: return "oxygen_therapy"
+    if "BAR BMI" in n: return "bar_bmi"
+    if "BMI" in n: return "bmi"
+    if "MAC HEART RATE" in n: return "max_heart_rate"
+    if "AORTIC" in n: return "aortic_heart_rate"
+    if "AWARE" in n: return "aware"
+    if n == "?": return np.nan
+    return "others"
 
-def value(v):
-	return '1' if (v == 'Supplemental oxygen' or 'AWARE' in v or 'Aware' in v or 'Yes' in v) else str(v)
 
-index_records = pd.read_csv('in-hosp flowsheet records.csv') # [975935 rows x 10 columns]
-# ['AdmitDt', 'DischDt', 'MEAS_VALUE', 'record_date', 'FLO_MEAS_NAME', 'oxygen', 'blood_pressure', 'heart_rate', 'bmi', 'id']
-index_records['patient_id'] = index_records['id']
-index_records['record_date'] = pd.to_datetime(index_records['record_date'], format='%Y-%m-%d')
-index_records['name'] = index_records['FLO_MEAS_NAME'].apply(record_name)
-index_records['value'] = index_records['MEAS_VALUE'].apply(value) # [975935 rows x 14 columns]
-index_bp = index_records.loc[index_records['name'].isin(['bp', 'arterial_line_bp'])] # [643225 rows x 14 columns]
-index_bp['systolic_bp'] = [x.split('/')[0] for x in index_bp['value']]
-index_bp['systolic_bp'] = index_bp['systolic_bp'].astype(float)
-index_bp['diastolic_bp'] = [x.split('/')[1] for x in index_bp['value']]
-index_bp['diastolic_bp'] = index_bp['diastolic_bp'].astype(float)
+def record_value(v):
+    if v == "Supplemental oxygen" or "AWARE" in str(v) or "Aware" in str(v) or "Yes" in str(v):
+        return "1"
+    return str(v)
 
-index_bp_s = index_bp[['patient_id', 'record_date', 'name', 'systolic_bp']] # [643225 rows x 5 columns]
-index_bp_s.rename(columns={'systolic_bp' : 'value'}, inplace=True)
-index_bp_d = index_bp[['patient_id', 'record_date', 'name', 'diastolic_bp']] # [643225 rows x 5 columns]
-index_bp_d.rename(columns={'diastolic_bp' : 'value'}, inplace=True)
-index_non_bp = index_records.loc[~index_records['name'].isin(['bp', 'arterial_line_bp'])]
-index_non_bp = index_non_bp[['patient_id', 'record_date', 'name', 'value']] # 332710 rows x 5 columns]
-index_records = pd.concat([index_non_bp, index_bp_s, index_bp_d]).sort_values(['patient_id'])
-index_records['value']=index_records['value'].astype(float) # [1619160 rows x 5 columns]
-
-index_records['records_count'] = 'records_count:' + index_records['name']
-index_records_count = pd.crosstab(index = [index_records['patient_id']], columns = index_records['records_count'], values = index_records['value'], aggfunc='count')
-index_records['records_mean'] = 'records_mean:' + index_records['name']
-index_records_mean = pd.crosstab(index = [index_records['patient_id']], columns = index_records['records_mean'], values = index_records['value'], aggfunc='mean')
-index_records['records_min'] = 'records_min:' + index_records['name']
-index_records_min = pd.crosstab(index = [index_records['patient_id']], columns = index_records['records_min'], values = index_records['value'], aggfunc='min')
-index_records['records_max'] = 'records_max:' + index_records['name']
-index_records_max = pd.crosstab(index = [index_records['patient_id']], columns = index_records['records_max'], values = index_records['value'], aggfunc='max') # each [3844 rows x 10 columns]
-
-index_records_crosstab = index_records_count.merge(index_records_mean, on='patient_id', how='left')
-index_records_crosstab = index_records_crosstab.merge(index_records_min, on='patient_id', how='left')
-index_records_crosstab = index_records_crosstab.merge(index_records_max, on='patient_id', how='left')
-index_records_crosstab.to_csv('/data/kidney/Sacha/newdata/index_records_crosstab.csv')  # No index=False
-index_records_crosstab = pd.read_csv('index_records_crosstab.csv') # [3844 rows x 42 columns]
-# ['patient_id', 'records_count:aortic_heart_rate', 'records_count:arterial_line_bp', 'records_count:aware', 'records_count:bar_bmi', 'records_count:bmi', 'records_count:bp', 'records_count:heart_rate_ecg', 'records_count:max_heart_rate', 'records_count:others', 'records_count:oxygen_therapy', etc. for mean, min, max. 
-
-# -----------------
-# in-hosp consultations
-
-def description(d):
-	start = d.lower().find('consult to ') + 11
-	return d.lower()[start:]
-
-def trim(crosstab, ratio):
-	threshold = crosstab.shape[0]*ratio
-	list_to_drop = []
-	for c in list(crosstab.dtypes.index):
-		if crosstab[c].isna().sum() > threshold:
-			list_to_drop.append(c)
-	crosstab.drop(list_to_drop, inplace=True, axis=1)
-
-index_consultations = pd.read_csv('in-hosp consultations.csv') # [14434 rows x 6 columns]
-# ['AdmitDt', 'DischDt', 'ORDERING_DATE', 'DESCRIPTION', 'DISPLAY_NAME', 'id']
-index_consultations['patient_id'] = index_consultations['id']
-index_consultations['ordering_date'] = pd.to_datetime(index_consultations['ORDERING_DATE'], format='%Y-%m-%d')
-index_consultations['consultation'] = index_consultations['DESCRIPTION'].apply(description)
-index_consultations['consult_count'] = 'consult_count:' + index_consultations['consultation']
-index_consultations_crosstab = pd.crosstab(index = [index_consultations['patient_id']], columns = index_consultations['consult_count'], 
-	values = index_consultations['consultation'], aggfunc='count')
-trim(index_consultations_crosstab, 199/200)
-index_consultations_crosstab.to_csv('/data/kidney/Sacha/newdata/index_consultations_crosstab.csv')  # No index=False
-index_consultations_crosstab = pd.read_csv('index_consultations_crosstab.csv') # [3468 rows x 57 columns] originally 87 columns
-# 'patient_id', 'consult_count:acute pain services', 'consult_count:adult acute pain services', 'consult_count:anesthesiology', 'consult_count:cardiac surgery', 'consult_count:cardiac surgery navigator', 'consult_count:cardiology', etc.
-
-# -----------------
-# in-hosp labs
 
 def test_name(n):
-	return 'C-Reactive Protein' if 'CRP' in n else 'Glucose' if n == 'Glucose (mmol/L)' else 'eGRF' if 'GFR' in n or 'Glomerular' in n else n
+    if "CRP" in n: return "C-Reactive Protein"
+    if n == "Glucose (mmol/L)": return "Glucose"
+    if "GFR" in n or "Glomerular" in n: return "eGRF"
+    return n
 
-index_labs = pd.read_csv('in-hosp labs.csv') # [519785 rows x 8 columns]
-# ['test_date', 'TEST_NM', 'TEST_RSLT', 'TEST_UOFM', 'lab_test_category', 'AdmitDt', 'DischDt', 'id']
-list_selected_labs = list(index_labs['TEST_NM'].value_counts().index)[:34]
-index_labs = index_labs[index_labs['TEST_NM'].isin(list_selected_labs)] # [519737 rows x 8 columns]
-index_labs = index_labs[index_labs['TEST_RSLT'].astype(str).apply(lambda x: x.replace('.','',1).replace('-','',1).isnumeric())]
-index_labs['patient_id'] = index_labs['id']
-index_labs['test_date'] = pd.to_datetime(index_labs['test_date'], format='%Y-%m-%d')
-index_labs['name'] = index_labs['TEST_NM'].apply(test_name)
-index_labs['result'] = index_labs['TEST_RSLT'].astype(float) # str.split().str.get(0).astype(float) for first part
-
-index_labs['labs_count'] = 'labs_count:' + index_labs['name']
-index_labs_count = pd.crosstab(index = [index_labs['patient_id']], columns = index_labs['labs_count'], values = index_labs['result'], aggfunc='count')
-index_labs['labs_mean'] = 'labs_mean:' + index_labs['name']
-index_labs_mean = pd.crosstab(index = [index_labs['patient_id']], columns = index_labs['labs_mean'], values = index_labs['result'], aggfunc='mean')
-index_labs['labs_min'] = 'labs_min:' + index_labs['name']
-index_labs_min = pd.crosstab(index = [index_labs['patient_id']], columns = index_labs['labs_min'], values = index_labs['result'], aggfunc='min')
-index_labs['labs_max'] = 'labs_max:' + index_labs['name']
-index_labs_max = pd.crosstab(index = [index_labs['patient_id']], columns = index_labs['labs_max'], values = index_labs['result'], aggfunc='max') # each [4693 rows x 29 columns]
-
-index_labs_crosstab = index_labs_count.merge(index_labs_mean, on='patient_id', how='left')
-index_labs_crosstab = index_labs_crosstab.merge(index_labs_min, on='patient_id', how='left')
-index_labs_crosstab = index_labs_crosstab.merge(index_labs_max, on='patient_id', how='left')
-index_labs_crosstab.to_csv('/data/kidney/Sacha/newdata/index_labs_crosstab.csv')  # No index=False
-index_labs_crosstab = pd.read_csv('index_labs_crosstab.csv') # [4693 rows x 118 columns]
-# ['patient_id', 'labs_count:Albumin', 'labs_count:Albumin / Creatinine Ratio', 'labs_count:Bicarbonate, Arterial', 'labs_count:Bicarbonate, Bld', 'labs_count:Bicarbonate, Venous', 'labs_count:C Reactive Protein Quantitative', 'labs_count:C-Reactive Protein', 'labs_count:Cholesterol', 'labs_count:Cholesterol, Total', 'labs_count:Creatinine', labs_count:Creatinine Serum', 'labs_count:GLUCOSE RANDOM', 'labs_count:Glucose', 'labs_count:Glucose Meter', 'labs_count:Glucose, Bld', 'labs_count:Glucose, Random', 'labs_count:Glucose, random', 'labs_count:HCO3', 'labs_count:HCO3,ARTERIAL', 'labs_count:HCO3,VENOUS', 'labs_count:Hemoglobin', 'labs_count:Hemoglobin, Arterial', 'labs_count:Hemoglobin, Venous', 'labs_count:Phosphate', 'labs_count:Phosphorus', 'labs_count:Protein / Creatinine Ratio, Urine', 'labs_count:Protein Urine UA', 'labs_count:Urate', 'labs_count:eGRF', then labs_mean and so on.
-
-# -----------------
-# pre-hosp vars
-
-pre_vars = pd.read_csv('pre-hosp vars.csv')
-# ['chf_pre', 'pvd_pre', 'pud_pre', 'mild_liver_disease_pre', 'cancer_pre', 'mild_severe_liver_disease_pre', 'htn_pre', 'diab_pre', 'gout_pre', 'id', 'covid_test_result']
-pre_vars['covid_test_result'] = pre_vars['covid_test_result'].replace('Positive', 1)
-pre_vars.rename(columns={'id':'patient_id', 'chf_pre':'chf', 'pvd_pre':'pvd', 'pud_pre':'pud',
-	'mild_liver_disease_pre':'mild_liver_disease', 'cancer_pre':'cancer', 'mild_severe_liver_disease_pre':'mild_severe_liver_disease',
-	'htn_pre':'hypertension', 'diab_pre':'diabetes', 'gout_pre':'gout'}, inplace=True)
-pre_vars = pre_vars[['patient_id', 'chf', 'pvd', 'pud', 'mild_liver_disease', 'cancer', 'mild_severe_liver_disease', 'hypertension', 'diabetes', 'gout', 'covid_test_result']]
-pre_vars = pre_vars.add_prefix('pre-index_vars:')
-pre_vars.rename(columns={'pre-index_vars:patient_id' : 'patient_id'}, inplace=True) # [4694 rows x 11 columns]
-# ['patient_id', 'pre_vars:chf_pre', 'pre_vars:pvd_pre', 'pre_vars:pud_pre', 'pre_vars:mild_liver_disease_pre', 'pre_vars:cancer_pre', 'pre_vars:mild_severe_liver_disease_pre', 'pre_vars:hypertension_pre', 'pre_vars:diabetes_pre', 'pre_vars:gout_pre', 'pre_vars:covid_test_result_pre']
-pre_vars.to_csv('/data/kidney/Sacha/newdata/pre_vars.csv', index=False)
-
-# -----------------
-# pre-hosp labs
-
-def test_name(n):
-	return 'C-Reactive Protein' if 'CRP' in n else 'Glucose' if n == 'Glucose (mmol/L)' else 'eGRF' if 'GFR' in n or 'Glomerular' in n else n
-
-pre_labs = pd.read_csv('pre-hosp labs.csv') # [191034 rows x 8 columns]
-# ['test_date', 'TEST_NM', 'TEST_RSLT', 'TEST_UOFM', 'lab_test_category', 'AdmitDt', 'DischDt', 'id']
-list_selected_labs = list(pre_labs['TEST_NM'].value_counts().index)[:50]
-pre_labs = pre_labs[pre_labs['TEST_NM'].isin(list_selected_labs)] # [167774 rows x 8 columns]
-pre_labs = pre_labs[pre_labs['TEST_RSLT'].astype(str).apply(lambda x: x.replace('.','',1).replace('-','',1).isnumeric())]
-pre_labs['patient_id'] = pre_labs['id']
-pre_labs['test_date'] = pd.to_datetime(pre_labs['test_date'], format='%Y-%m-%d')
-pre_labs['name'] = pre_labs['TEST_NM'].apply(test_name)
-pre_labs['result'] = pre_labs['TEST_RSLT'].astype(float) # str.split().str.get(0).astype(float) for first part
-
-pre_labs['labs_count'] = 'pre-index_labs_count:' + pre_labs['name']
-pre_labs_count = pd.crosstab(index = [pre_labs['patient_id']], columns = pre_labs['labs_count'], values = pre_labs['result'], aggfunc='count')
-pre_labs['labs_mean'] = 'pre-index_labs_mean:' + pre_labs['name']
-pre_labs_mean = pd.crosstab(index = [pre_labs['patient_id']], columns = pre_labs['labs_mean'], values = pre_labs['result'], aggfunc='mean')
-pre_labs['labs_min'] = 'pre-index_labs_min:' + pre_labs['name']
-pre_labs_min = pd.crosstab(index = [pre_labs['patient_id']], columns = pre_labs['labs_min'], values = pre_labs['result'], aggfunc='min')
-pre_labs['labs_max'] = 'pre-index_labs_max:' + pre_labs['name']
-pre_labs_max = pd.crosstab(index = [pre_labs['patient_id']], columns = pre_labs['labs_max'], values = pre_labs['result'], aggfunc='max') # each [4693 rows x 29 columns]
-
-pre_labs_crosstab = pre_labs_count.merge(pre_labs_mean, on='patient_id', how='left')
-pre_labs_crosstab = pre_labs_crosstab.merge(pre_labs_min, on='patient_id', how='left')
-pre_labs_crosstab = pre_labs_crosstab.merge(pre_labs_max, on='patient_id', how='left')
-pre_labs_crosstab.to_csv('/data/kidney/Sacha/newdata/pre_labs_crosstab.csv')  # No index=False
-pre_labs_crosstab = pd.read_csv('pre_labs_crosstab.csv') # [4242 rows x 177 columns]
-# ['patient_id', 'pre_index_labs_count:ALBUMIN/CREATININE RATIO,URINE', 'pre_index_labs_count:Albumin', 'pre_index_labs_count:Albumin / Creatinine Ratio', etc., then labs_mean and so on.
-
-# -----------------
-# pre-hosp bmi
 
 def bmi_name(n):
-	return 'bar_bmi' if 'BAR' in n else 'bmi' 
+    return "bar_bmi" if "BAR" in n else "bmi"
 
-pre_bmi = pd.read_csv('pre-hosp bmi.csv') # [2536 rows x 6 columns]
-# ['AdmitDt', 'DischDt', 'MEAS_VALUE', 'record_date', 'FLO_MEAS_NAME', 'id']
-pre_bmi['patient_id'] = pre_bmi['id']
-pre_bmi['record_date'] = pd.to_datetime(pre_bmi['record_date'], format='%Y-%m-%d')
-pre_bmi['name'] = pre_bmi['FLO_MEAS_NAME'].apply(bmi_name)
-pre_bmi['value'] = pre_bmi['MEAS_VALUE']
 
-pre_bmi['pre_count'] = 'pre-index_count:' + pre_bmi['name']
-pre_bmi_count = pd.crosstab(index = [pre_bmi['patient_id']], columns = pre_bmi['pre_count'], values = pre_bmi['value'], aggfunc='count')
-pre_bmi['pre_mean'] = 'pre-index_mean:' + pre_bmi['name']
-pre_bmi_mean = pd.crosstab(index = [pre_bmi['patient_id']], columns = pre_bmi['pre_mean'], values = pre_bmi['value'], aggfunc='mean')
-pre_bmi['pre_min'] = 'pre-index_min:' + pre_bmi['name']
-pre_bmi_min = pd.crosstab(index = [pre_bmi['patient_id']], columns = pre_bmi['pre_min'], values = pre_bmi['value'], aggfunc='min')
-pre_bmi['pre_max'] = 'pre-index_max:' + pre_bmi['name']
-pre_bmi_max = pd.crosstab(index = [pre_bmi['patient_id']], columns = pre_bmi['pre_max'], values = pre_bmi['value'], aggfunc='max') # each [566 rows x 2 columns]
+def description(d):
+    start = d.lower().find("consult to ") + 11
+    return d.lower()[start:]
 
-pre_bmi_crosstab = pre_bmi_count.merge(pre_bmi_mean, on='patient_id', how='left')
-pre_bmi_crosstab = pre_bmi_crosstab.merge(pre_bmi_min, on='patient_id', how='left')
-pre_bmi_crosstab = pre_bmi_crosstab.merge(pre_bmi_max, on='patient_id', how='left')
-pre_bmi_crosstab.to_csv('/data/kidney/Sacha/newdata/pre_bmi_crosstab.csv')  # No index=False
-pre_bmi_crosstab = pd.read_csv('pre_bmi_crosstab.csv') # [566 rows x 9 columns]
-# ['patient_id', 'pre_count:bar_bmi', 'pre_count:bmi', 'pre_mean:bar_bmi', 'pre_mean:bmi', 'pre_min:bar_bmi', 'pre_min:bmi', pre_max:bar_bmi', 'pre_max:bmi']
 
-# -----------------
-# pre-hosp medication
+def trim(crosstab, ratio):
+    threshold = crosstab.shape[0] * ratio
+    to_drop = [c for c in crosstab.columns if crosstab[c].isna().sum() > threshold]
+    crosstab.drop(to_drop, inplace=True, axis=1)
 
-pre_medication = pd.read_csv('pre-hosp medication.csv') # [4087 rows x 12 columns]
-# 'AdmitDt', 'DischDt', 'ace_arb', 'AMINOGLYCOSIDE', 'AMPHOTERICIN_B', 'DIURETIC_K', 'DIURETIC_NONK', 'NSAIDS', 'PPI', 'SGLT2', 'VANCOMYCIN', 'id']
-pre_medication = pre_medication.rename(columns={'id':'patient_id', 'AMINOGLYCOSIDE':'aminoglycoside', 
-	'AMPHOTERICIN_B':'amphotericin_b', 'DIURETIC_K':'diuretic_k', 'DIURETIC_NONK':'diuretic_non_k', 'NSAIDS':'nsaids',
-	'PPI':'ppi', 'SGLT2':'sglt2', 'VANCOMYCIN':'vancomycin'})
-pre_medication = pre_medication[['patient_id', 'aminoglycoside', 'amphotericin_b', 'diuretic_k', 'diuretic_non_k', 'nsaids',
-	'ppi', 'sglt2', 'vancomycin']]
-pre_medication = pre_medication.add_prefix('pre-index_medication:')
-pre_medication.rename(columns={'pre-index_medication:patient_id' : 'patient_id'}, inplace=True)
-pre_medication.to_csv('/data/kidney/Sacha/newdata/pre_medication.csv', index=False)
 
-#==================
-cohort = pd.read_csv('/data/kidney/Sacha/newdata/cohort.csv')
-index_vars = pd.read_csv('/data/kidney/Sacha/newdata/index_vars.csv')
-index_records_crosstab = pd.read_csv('/data/kidney/Sacha/newdata/index_records_crosstab.csv')
-index_consultations_crosstab = pd.read_csv('/data/kidney/Sacha/newdata/index_consultations_crosstab.csv')
-index_labs_crosstab = pd.read_csv('/data/kidney/Sacha/newdata/index_labs_crosstab.csv')
-pre_vars = pd.read_csv('/data/kidney/Sacha/newdata/pre_vars.csv')
-pre_labs_crosstab = pd.read_csv('/data/kidney/Sacha/newdata/pre_labs_crosstab.csv')
-pre_bmi_crosstab = pd.read_csv('/data/kidney/Sacha/newdata/pre_bmi_crosstab.csv')
-pre_medication = pd.read_csv('/data/kidney/Sacha/newdata/pre_medication.csv')
-features = cohort.merge(index_vars, on='patient_id', how='outer')
-features = features.merge(index_records_crosstab, on='patient_id', how='outer')
-features = features.merge(index_consultations_crosstab, on='patient_id', how='outer')
-features = features.merge(index_labs_crosstab, on='patient_id', how='outer')
-features = features.merge(pre_vars, on='patient_id', how='outer')
-features = features.merge(pre_labs_crosstab, on='patient_id', how='outer')
-features = features.merge(pre_bmi_crosstab, on='patient_id', how='outer')
-features = features.merge(pre_medication, on='patient_id', how='outer')
-features.to_csv('/data/kidney/Sacha/newdata/features.csv', index=False) # [4694 rows x 481 columns]
+def _build_crosstab(df, id_col, prefix, name_col, value_col):
+    """Build count/mean/min/max crosstab for a data source."""
+    results = []
+    for agg, func in [("count", "count"), ("mean", "mean"), ("min", "min"), ("max", "max")]:
+        df[f"__{agg}"] = f"{prefix}_{agg}:" + df[name_col]
+        ct = pd.crosstab(
+            index=df[id_col], columns=df[f"__{agg}"],
+            values=df[value_col], aggfunc=func,
+        )
+        results.append(ct)
+    merged = results[0]
+    for ct in results[1:]:
+        merged = merged.merge(ct, on=id_col, how="left")
+    return merged
+
+
+# ---------------------------------------------------------------------------
+# Main ETL function
+# ---------------------------------------------------------------------------
+
+def run_etl():
+    """Run the full ETL pipeline: raw CSVs -> features.csv + cohort.csv."""
+    raw_dir = config.get_raw_data_dir()
+    out_dir = config.get_etl_output_dir()
+    os.makedirs(out_dir, exist_ok=True)
+
+    print(f"[ETL] Reading from: {raw_dir}")
+    print(f"[ETL] Writing to: {out_dir}")
+
+    # ---- 1. Cohort ----
+    cohort = pd.read_csv(os.path.join(raw_dir, "cohort and outcome.csv"))
+    print(f"[ETL] Loaded cohort -> {len(cohort)} patients")
+
+    cohort.rename(columns={
+        "id": "patient_id", "AGE_ADMIT": "age_admit",
+        "stage1_dt": "stage1_date", "stage1_value": "stage1_creatinine",
+        "stage2_dt": "stage2_date", "stage2_value": "stage2_creatinine",
+        "stage3_dt": "stage3_date", "stage3_value": "stage3_creatinine",
+        "higheststage": "highest_stage", "CKD_stage45": "ckd_stage45",
+        "stroke_af": "stroke_after", "chf_af": "chf_after", "mi_af": "mi_after",
+    }, inplace=True)
+    cohort["admit_date"] = pd.to_datetime(cohort["AdmitDt"])
+    cohort["discharge_date"] = pd.to_datetime(cohort["DischDt"])
+    cohort["sex"] = (cohort["SEX"] == "F").astype(int)
+    cohort["death_date"] = pd.to_datetime(cohort["death_date"])
+    cohort = cohort[[
+        "patient_id", "admit_date", "discharge_date", "sex", "age_admit",
+        "total_los", "stage1", "stage1_date", "stage1_creatinine",
+        "stage2", "stage2_date", "stage2_creatinine",
+        "stage3", "stage3_date", "stage3_creatinine",
+        "highest_stage", "death_date", "ckd_stage45",
+        "stroke_after", "chf_after", "mi_after",
+    ]]
+    cohort.to_csv(os.path.join(out_dir, "cohort.csv"), index=False)
+
+    # ---- 2. In-hospital variables ----
+    index_vars = pd.read_csv(os.path.join(raw_dir, "in-hosp vars.csv"))
+    index_vars.rename(columns={
+        "id": "patient_id",
+        "Cardiac_catheterization": "cardiac_catheterization",
+        "Mechanical_ventilation": "mechanical_ventilation",
+        "OT_assessment": "ot_assessment",
+        "PT_assessment": "pt_assessment",
+    }, inplace=True)
+
+    index_vars["goals_of_care"] = index_vars["goals_of_care"].fillna("?").apply(categorize_goals_of_care)
+    for cat in ["acute", "community", "transition", "others", "intensive",
+                "mobility", "assessment", "perioperative"]:
+        index_vars[f"goal_{cat}"] = (index_vars["goals_of_care"] == cat).astype(int)
+
+    index_vars["covid_test_result"] = (index_vars["covid_test_result"] == "Positive").astype(int)
+
+    for service in SERVICE_LIST:
+        col = service.lower().replace(" ", "_")
+        index_vars[col] = index_vars["admission_services"].str.lower().str.contains(
+            service.lower(), na=False
+        ).astype(int)
+
+    cols_keep = (
+        ["patient_id", "icu_inhosp", "icu"]
+        + [f"goal_{c}" for c in ["acute", "community", "transition", "others",
+                                  "intensive", "mobility", "assessment", "perioperative"]]
+        + ["cardiac_surgery", "insulin", "beta_blocker", "covid_test_result",
+           "smoke", "cardiac_catheterization", "ami", "chf", "dialysis",
+           "mechanical_ventilation", "renal_ultralsound", "angiogram",
+           "foley_catheter", "ot_assessment", "pt_assessment",
+           "obstructive_uropathy", "sepsis", "admission_services"]
+        + [s.lower().replace(" ", "_") for s in SERVICE_LIST]
+    )
+    index_vars = index_vars[cols_keep]
+    index_vars = index_vars.add_prefix("index_vars:")
+    index_vars.rename(columns={"index_vars:patient_id": "patient_id"}, inplace=True)
+    index_vars.to_csv(os.path.join(out_dir, "index_vars.csv"), index=False)
+    print(f"[ETL] Processed in-hospital variables -> {index_vars.shape}")
+
+    # ---- 3. In-hospital flowsheet records ----
+    records_path = os.path.join(raw_dir, "in-hosp flowsheet records.csv")
+    if os.path.exists(records_path):
+        index_records = pd.read_csv(records_path)
+        index_records["patient_id"] = index_records["id"]
+        index_records["record_date"] = pd.to_datetime(index_records["record_date"])
+        index_records["name"] = index_records["FLO_MEAS_NAME"].apply(record_name)
+        index_records["value"] = index_records["MEAS_VALUE"].apply(record_value)
+
+        # Split BP into systolic/diastolic
+        bp_mask = index_records["name"].isin(["bp", "arterial_line_bp"])
+        index_bp = index_records.loc[bp_mask].copy()
+        index_bp["systolic_bp"] = index_bp["value"].str.split("/").str[0].astype(float)
+        index_bp["diastolic_bp"] = index_bp["value"].str.split("/").str[1].astype(float)
+
+        bp_s = index_bp[["patient_id", "record_date", "name", "systolic_bp"]].rename(
+            columns={"systolic_bp": "value"})
+        bp_d = index_bp[["patient_id", "record_date", "name", "diastolic_bp"]].rename(
+            columns={"diastolic_bp": "value"})
+        non_bp = index_records.loc[~bp_mask, ["patient_id", "record_date", "name", "value"]]
+        index_records = pd.concat([non_bp, bp_s, bp_d]).sort_values("patient_id")
+        index_records["value"] = index_records["value"].astype(float)
+
+        index_records_crosstab = _build_crosstab(
+            index_records, "patient_id", "records", "name", "value"
+        )
+        index_records_crosstab.to_csv(os.path.join(out_dir, "index_records_crosstab.csv"))
+        index_records_crosstab = pd.read_csv(os.path.join(out_dir, "index_records_crosstab.csv"))
+        print(f"[ETL] Processed flowsheet records -> {index_records_crosstab.shape}")
+    else:
+        index_records_crosstab = pd.DataFrame(columns=["patient_id"])
+
+    # ---- 4. In-hospital consultations ----
+    consults_path = os.path.join(raw_dir, "in-hosp consultations.csv")
+    if os.path.exists(consults_path):
+        consults = pd.read_csv(consults_path)
+        consults["patient_id"] = consults["id"]
+        consults["consultation"] = consults["DESCRIPTION"].apply(description)
+        consults["consult_count"] = "consult_count:" + consults["consultation"]
+        consults_ct = pd.crosstab(
+            index=consults["patient_id"], columns=consults["consult_count"],
+            values=consults["consultation"], aggfunc="count",
+        )
+        trim(consults_ct, 199 / 200)
+        consults_ct.to_csv(os.path.join(out_dir, "index_consultations_crosstab.csv"))
+        consults_ct = pd.read_csv(os.path.join(out_dir, "index_consultations_crosstab.csv"))
+        print(f"[ETL] Processed consultations -> {consults_ct.shape}")
+    else:
+        consults_ct = pd.DataFrame(columns=["patient_id"])
+
+    # ---- 5. In-hospital labs ----
+    index_labs = pd.read_csv(os.path.join(raw_dir, "in-hosp labs.csv"))
+    top_labs = list(index_labs["TEST_NM"].value_counts().index)[:34]
+    index_labs = index_labs[index_labs["TEST_NM"].isin(top_labs)]
+    index_labs = index_labs[index_labs["TEST_RSLT"].astype(str).apply(
+        lambda x: x.replace(".", "", 1).replace("-", "", 1).isnumeric()
+    )]
+    index_labs["patient_id"] = index_labs["id"]
+    index_labs["test_date"] = pd.to_datetime(index_labs["test_date"])
+    index_labs["name"] = index_labs["TEST_NM"].apply(test_name)
+    index_labs["result"] = index_labs["TEST_RSLT"].astype(float)
+
+    index_labs_crosstab = _build_crosstab(
+        index_labs, "patient_id", "labs", "name", "result"
+    )
+    index_labs_crosstab.to_csv(os.path.join(out_dir, "index_labs_crosstab.csv"))
+    index_labs_crosstab = pd.read_csv(os.path.join(out_dir, "index_labs_crosstab.csv"))
+    print(f"[ETL] Processed in-hospital labs -> {index_labs_crosstab.shape}")
+
+    # ---- 6. Pre-hospital variables ----
+    pre_vars_path = os.path.join(raw_dir, "pre-hosp vars.csv")
+    if os.path.exists(pre_vars_path):
+        pre_vars = pd.read_csv(pre_vars_path)
+        pre_vars["covid_test_result"] = pre_vars["covid_test_result"].replace("Positive", 1)
+        pre_vars.rename(columns={
+            "id": "patient_id", "chf_pre": "chf", "pvd_pre": "pvd", "pud_pre": "pud",
+            "mild_liver_disease_pre": "mild_liver_disease", "cancer_pre": "cancer",
+            "mild_severe_liver_disease_pre": "mild_severe_liver_disease",
+            "htn_pre": "hypertension", "diab_pre": "diabetes", "gout_pre": "gout",
+        }, inplace=True)
+        pre_vars = pre_vars[["patient_id", "chf", "pvd", "pud", "mild_liver_disease",
+                              "cancer", "mild_severe_liver_disease", "hypertension",
+                              "diabetes", "gout", "covid_test_result"]]
+        pre_vars = pre_vars.add_prefix("pre-index_vars:")
+        pre_vars.rename(columns={"pre-index_vars:patient_id": "patient_id"}, inplace=True)
+        pre_vars.to_csv(os.path.join(out_dir, "pre_vars.csv"), index=False)
+        print(f"[ETL] Processed pre-hospital variables -> {pre_vars.shape}")
+    else:
+        pre_vars = pd.DataFrame(columns=["patient_id"])
+
+    # ---- 7. Pre-hospital labs ----
+    pre_labs_path = os.path.join(raw_dir, "pre-hosp labs.csv")
+    if os.path.exists(pre_labs_path):
+        pre_labs = pd.read_csv(pre_labs_path)
+        top_pre = list(pre_labs["TEST_NM"].value_counts().index)[:50]
+        pre_labs = pre_labs[pre_labs["TEST_NM"].isin(top_pre)]
+        pre_labs = pre_labs[pre_labs["TEST_RSLT"].astype(str).apply(
+            lambda x: x.replace(".", "", 1).replace("-", "", 1).isnumeric()
+        )]
+        pre_labs["patient_id"] = pre_labs["id"]
+        pre_labs["test_date"] = pd.to_datetime(pre_labs["test_date"])
+        pre_labs["name"] = pre_labs["TEST_NM"].apply(test_name)
+        pre_labs["result"] = pre_labs["TEST_RSLT"].astype(float)
+
+        pre_labs_crosstab = _build_crosstab(
+            pre_labs, "patient_id", "pre-index_labs", "name", "result"
+        )
+        pre_labs_crosstab.to_csv(os.path.join(out_dir, "pre_labs_crosstab.csv"))
+        pre_labs_crosstab = pd.read_csv(os.path.join(out_dir, "pre_labs_crosstab.csv"))
+        print(f"[ETL] Processed pre-hospital labs -> {pre_labs_crosstab.shape}")
+    else:
+        pre_labs_crosstab = pd.DataFrame(columns=["patient_id"])
+
+    # ---- 8. Pre-hospital BMI ----
+    bmi_path = os.path.join(raw_dir, "pre-hosp bmi.csv")
+    if os.path.exists(bmi_path):
+        pre_bmi = pd.read_csv(bmi_path)
+        pre_bmi["patient_id"] = pre_bmi["id"]
+        pre_bmi["record_date"] = pd.to_datetime(pre_bmi["record_date"])
+        pre_bmi["name"] = pre_bmi["FLO_MEAS_NAME"].apply(bmi_name)
+        pre_bmi["value"] = pre_bmi["MEAS_VALUE"]
+
+        pre_bmi_crosstab = _build_crosstab(
+            pre_bmi, "patient_id", "pre-index", "name", "value"
+        )
+        pre_bmi_crosstab.to_csv(os.path.join(out_dir, "pre_bmi_crosstab.csv"))
+        pre_bmi_crosstab = pd.read_csv(os.path.join(out_dir, "pre_bmi_crosstab.csv"))
+        print(f"[ETL] Processed pre-hospital BMI -> {pre_bmi_crosstab.shape}")
+    else:
+        pre_bmi_crosstab = pd.DataFrame(columns=["patient_id"])
+
+    # ---- 9. Pre-hospital medication ----
+    med_path = os.path.join(raw_dir, "pre-hosp medication.csv")
+    if os.path.exists(med_path):
+        pre_med = pd.read_csv(med_path)
+        pre_med.rename(columns={
+            "id": "patient_id", "AMINOGLYCOSIDE": "aminoglycoside",
+            "AMPHOTERICIN_B": "amphotericin_b", "DIURETIC_K": "diuretic_k",
+            "DIURETIC_NONK": "diuretic_non_k", "NSAIDS": "nsaids",
+            "PPI": "ppi", "SGLT2": "sglt2", "VANCOMYCIN": "vancomycin",
+        }, inplace=True)
+        pre_med = pre_med[["patient_id", "aminoglycoside", "amphotericin_b",
+                            "diuretic_k", "diuretic_non_k", "nsaids",
+                            "ppi", "sglt2", "vancomycin"]]
+        pre_med = pre_med.add_prefix("pre-index_medication:")
+        pre_med.rename(columns={"pre-index_medication:patient_id": "patient_id"}, inplace=True)
+        pre_med.to_csv(os.path.join(out_dir, "pre_medication.csv"), index=False)
+        print(f"[ETL] Processed pre-hospital medication -> {pre_med.shape}")
+    else:
+        pre_med = pd.DataFrame(columns=["patient_id"])
+
+    # ---- Final merge ----
+    features = cohort
+    for df in [index_vars, index_records_crosstab, consults_ct,
+               index_labs_crosstab, pre_vars, pre_labs_crosstab,
+               pre_bmi_crosstab, pre_med]:
+        features = features.merge(df, on="patient_id", how="outer")
+
+    features.to_csv(os.path.join(out_dir, "features.csv"), index=False)
+    print(f"[ETL] Final merged features -> {features.shape[0]} patients x {features.shape[1]} columns")
+    print(f"[ETL] Saved to {os.path.join(out_dir, 'features.csv')}")
+
+    return features
+
+
+if __name__ == "__main__":
+    run_etl()
