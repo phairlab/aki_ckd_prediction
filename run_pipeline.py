@@ -130,20 +130,30 @@ def run_shap(exp_config, model, X_data, feature_names, output_dir, device=None):
             print("[SHAP] No fold model found, skipping.")
             return
 
-        n_features = X_scaled.shape[1]
+        # Infer n_features from saved model to avoid shape mismatch
+        state_dict = torch.load(model_path, map_location="cpu")
+        n_features_model = state_dict["input_embedding.weight"].shape[1]
+
+        # Check if current data matches model's expected features
+        if X_scaled.shape[1] != n_features_model:
+            print(f"[SHAP] Feature mismatch: data has {X_scaled.shape[1]} features, "
+                  f"model expects {n_features_model}. Using first {n_features_model} features.")
+            X_scaled = X_scaled[:, :n_features_model]
+            feature_names = feature_names[:n_features_model]
+
         if exp_config.model_size == "large":
-            model = LargeTabularTransformer(n_features)
+            model = LargeTabularTransformer(n_features_model)
         else:
-            model = TabularTransformer(n_features)
-        model.load_state_dict(torch.load(model_path, map_location=device))
-        model.to(device)
+            model = TabularTransformer(n_features_model)
+        model.load_state_dict(state_dict)
+        model.to("cpu")  # SHAP on CPU to avoid CUDA kernel errors with variable batch sizes
         model.eval()
 
         def predict_fn(X):
             with torch.no_grad():
-                X_tensor = torch.FloatTensor(X).to(device)
+                X_tensor = torch.FloatTensor(X)
                 outputs = model(X_tensor)
-                probs = torch.softmax(outputs, dim=1).cpu().numpy()
+                probs = torch.softmax(outputs, dim=1).numpy()
             return probs
 
         perform_shap_analysis_kernel(predict_fn, X_scaled, feature_names, output_dir)
@@ -174,10 +184,22 @@ def main():
     # NRI-only mode
     if args.nri_only:
         experiment_dirs = {}
-        for name in config.EXPERIMENTS:
-            path = find_latest_experiment_dir(name)
-            if path:
-                experiment_dirs[name] = path
+        # Scan results directory for all experiment folders, not just those in config
+        results_dir = config.get_experiments_dir()
+        if os.path.isdir(results_dir):
+            for d in os.listdir(results_dir):
+                if "fold_results" not in d:
+                    continue
+                # Extract experiment name from folder (format: YYYYMMDD_HHMM_<name>_fold_results)
+                parts = d.split("_")
+                if len(parts) >= 4:
+                    # Join everything between timestamp and "fold_results"
+                    name = "_".join(parts[2:-2])
+                    full_path = os.path.join(results_dir, d)
+                    # Keep only the latest if multiple runs exist
+                    if name not in experiment_dirs or d > os.path.basename(experiment_dirs[name]):
+                        experiment_dirs[name] = full_path
+        print(f"[NRI] Found {len(experiment_dirs)} experiment(s): {list(experiment_dirs.keys())}")
         run_nri_comparisons(experiment_dirs)
         return
 

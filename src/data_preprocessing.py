@@ -220,8 +220,12 @@ def preprocess_data(exp_config):
 
         if model_type == "transformer":
             # One-hot encode categoricals first
+            # Binary columns should NOT be one-hot encoded (already 0/1)
+            binary_cols = {"sex"}
             cat_features = []
             for col in features_df.columns:
+                if col in binary_cols:
+                    continue
                 if not any(p in col for p in excluded_patterns):
                     if (features_df[col].dtype == "object"
                             or features_df[col].dtype == "bool"
@@ -249,6 +253,9 @@ def preprocess_data(exp_config):
 
     features_used = features_df[feature_columns].values
     feature_names = np.array(feature_columns)
+
+    # Handle any remaining NaN/inf values in features
+    features_used = np.nan_to_num(features_used, nan=0.0, posinf=0.0, neginf=0.0)
 
     print(f"[Data] Final feature matrix: {features_used.shape[0]} patients x {features_used.shape[1]} features")
 
@@ -309,9 +316,14 @@ def _one_hot_encode(features_df, feature_columns):
 
     Returns (updated_feature_columns, updated_features_df).
     """
+    # Binary columns should NOT be one-hot encoded (already 0/1)
+    binary_cols = {"sex"}
+
     cat_features = []
     for col in feature_columns:
         if col not in features_df.columns:
+            continue
+        if col in binary_cols:
             continue
         if (features_df[col].dtype == "object"
                 or features_df[col].dtype == "bool"

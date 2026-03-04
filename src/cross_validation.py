@@ -99,6 +99,10 @@ def run_cross_validation(exp_config, data):
         X_train = scaler.fit_transform(X_train)
         X_test = scaler.transform(X_test)
 
+        # Handle NaN/inf from scaling (e.g., zero-variance columns)
+        X_train = np.nan_to_num(X_train, nan=0.0, posinf=0.0, neginf=0.0)
+        X_test = np.nan_to_num(X_test, nan=0.0, posinf=0.0, neginf=0.0)
+
         feature_names_fold = feature_names.copy()
         selector = None
 

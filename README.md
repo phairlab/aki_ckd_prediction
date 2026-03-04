@@ -56,11 +56,11 @@ Defined in `config.py`:
 
 | Name | Model | Feature Set |
 |------|-------|-------------|
-| `xgb_alberta_score` | XGBoost | Alberta Score (25-point) |
+| `xgb_alberta_score` | XGBoost | Alberta Score (single feature) |
 | `xgb_alberta_raw` | XGBoost | Raw Alberta features |
 | `transformer_alberta_raw` | Transformer | Raw Alberta features |
-| `xgb_expanded` | XGBoost | Extended (top 100 via RFE) |
-| `transformer_expanded` | Transformer | Extended (top 100 via SelectKBest) |
+| `xgb_expanded` | XGBoost | Extended (top 100 features via RFE) |
+| `transformer_expanded` | Transformer | Extended (top 100 features via SelectKBest) |
 | `transformer_egfr` | Transformer | eGFR features |
 
 ## Output structure
