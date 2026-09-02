@@ -162,6 +162,43 @@ def _prepare_labs(labs_df, top_n, source_label):
 # Main ETL function
 # ---------------------------------------------------------------------------
 
+def _backup_existing(out_dir, filenames=("features.csv", "cohort.csv")):
+    """Copy any existing ETL outputs aside before overwriting them.
+
+    The ETL rewrites features.csv in place. On the server that file is the one
+    the SUBMITTED results were computed from, and the resubmission needs it:
+    several points in the response letter rest on a before/after comparison
+    (untuned vs tuned, raw lab names vs normalized entities), which is not
+    possible once the original is gone.
+
+    Backups are timestamped and never overwritten, so re-running the ETL
+    repeatedly cannot eat the original.
+    """
+    import shutil
+    from datetime import datetime
+
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup_dir = os.path.join(out_dir, "pre_reanalysis_backup")
+    saved = []
+
+    for name in filenames:
+        source = os.path.join(out_dir, name)
+        if not os.path.exists(source):
+            continue
+        os.makedirs(backup_dir, exist_ok=True)
+        stem, ext = os.path.splitext(name)
+        target = os.path.join(backup_dir, f"{stem}_{stamp}{ext}")
+        shutil.copy2(source, target)
+        saved.append(target)
+
+    if saved:
+        print(f"[ETL] Backed up {len(saved)} existing file(s) before overwriting:")
+        for path in saved:
+            size = os.path.getsize(path) / 1e6
+            print(f"    {path}  ({size:,.1f} MB)")
+    return saved
+
+
 def run_etl():
     """Run the full ETL pipeline: raw CSVs -> features.csv + cohort.csv."""
     raw_dir = config.get_raw_data_dir()
@@ -170,6 +207,8 @@ def run_etl():
 
     print(f"[ETL] Reading from: {raw_dir}")
     print(f"[ETL] Writing to: {out_dir}")
+
+    _backup_existing(out_dir)
 
     # ---- 1. Cohort ----
     cohort = pd.read_csv(os.path.join(raw_dir, "cohort and outcome.csv"))

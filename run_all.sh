@@ -24,6 +24,7 @@ GPUS="auto"
 TUNING="full"
 EXPERIMENTS_SET="primary"
 SKIP_ETL=""
+ETL_ONLY=""
 EXTRA=()
 
 usage() {
@@ -35,6 +36,8 @@ Usage: ./run_all.sh [options]
   --tuning PROFILE                  smoke | fast | full | deep | off  (default: full)
   --experiments-set NAME            primary | sensitivity_k | sensitivity_selector | all
   --skip-etl                        Reuse the existing features.csv
+  --etl-only                        Rebuild features.csv and stop, so the lab
+                                    normalization audit can be reviewed first
   --eval-suite PATH                 Path to lancet-digital-health-eval-suite
   --                                Pass everything after this to run_pipeline.py
 
@@ -51,6 +54,7 @@ while [[ $# -gt 0 ]]; do
         --tuning)           TUNING="$2"; shift 2 ;;
         --experiments-set)  EXPERIMENTS_SET="$2"; shift 2 ;;
         --skip-etl)         SKIP_ETL="1"; shift ;;
+        --etl-only)         ETL_ONLY="1"; shift ;;
         --eval-suite)       EVAL_SUITE="$2"; shift 2 ;;
         -h|--help)          usage; exit 0 ;;
         --)                 shift; EXTRA=("$@"); break ;;
@@ -79,6 +83,10 @@ banner "STAGE 0 — raw data inventory"
 
 # ---------------------------------------------------------------------------
 banner "STAGE 1 — ETL, nested cross-validation, post-hoc analyses"
+if [[ -n "$ETL_ONLY" ]]; then
+    "$PYTHON" "$HERE/run_pipeline.py" "$DATA_FLAG" --etl-only
+    exit 0
+fi
 "$PYTHON" "$HERE/run_pipeline.py" \
     "$DATA_FLAG" $ETL_FLAG \
     --gpus "$GPUS" \

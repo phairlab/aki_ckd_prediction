@@ -86,6 +86,10 @@ def parse_args():
 
     p.add_argument("--etl", action="store_true",
                    help="Rebuild features.csv from the raw extracts first")
+    p.add_argument("--etl-only", action="store_true",
+                   help="Run the ETL and stop. Use this to review "
+                        "reports/lab_normalization_audit.csv before committing "
+                        "to a long training run.")
 
     p.add_argument("--experiments", nargs="+", default=None,
                    help="Run only these experiments (names from config.ALL_EXPERIMENTS)")
@@ -397,8 +401,23 @@ def main():
     setup_global_style()
     os.makedirs(config.get_reports_dir(), exist_ok=True)
 
-    if args.etl:
+    if args.etl or args.etl_only:
         run_etl_stage()
+
+    if args.etl_only:
+        reports = config.get_reports_dir()
+        print(f"\n{'#' * 70}")
+        print("# --etl-only: stopping before training.")
+        print("#")
+        print("# Review these before running the models -- a wrong lab merge")
+        print("# propagates into every expanded-feature result:")
+        print(f"#   {os.path.join(reports, 'lab_normalization_audit.csv')}")
+        print(f"#   {os.path.join(reports, 'feature_inventory.csv')}")
+        print("#")
+        print("# Then re-run without --etl-only, and add --skip-etl to reuse")
+        print("# the features.csv this just built.")
+        print(f"{'#' * 70}\n")
+        return
 
     if args.analyses_only:
         from src.analysis.predictions import find_experiment_dirs
