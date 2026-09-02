@@ -1,4 +1,26 @@
 """
+SUPERSEDED -- do not use. Kept only so the pre-resubmission history is readable.
+
+This module computed NRI on the models' RAW probabilities with a
+population-SD (ddof=0) fold spread. The published Table 5 was produced on
+RECALIBRATED probabilities with a sample SD (ddof=1), by `nri.py` in the
+lancet-digital-health-eval-suite. The two therefore do not agree, and shipping
+this file on the analysis path meant the repository cited in the paper did not
+reproduce the paper's own table.
+
+NRI now lives in one place:
+
+    python nri.py \
+        --baseline_dir <results>/<timestamp>_logreg_james_score_fold_results \
+        --ordering example_ordering.json \
+        --threshold 0.20 --recalibrate --bootstrap 2000 \
+        --output_csv reports/nri_table.csv
+
+Recalibration there and in src/analysis/predictions.py are the same procedure,
+and predictions.verify_against_eval_suite() asserts they stay that way.
+"""
+
+"""
 Net Reclassification Improvement (NRI) analysis.
 
 Compares how well two models reclassify patients across risk categories

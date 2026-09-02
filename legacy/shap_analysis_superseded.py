@@ -1,4 +1,21 @@
 """
+SUPERSEDED -- pre-refactor duplicate, kept only for provenance.
+
+This module predates the refactor into config.py / run_pipeline.py / src/{models,
+analysis,evaluation}. It is not on the analysis path and is not maintained. The
+live equivalents are:
+
+    get_results_xgboost.py        -> src/cross_validation.py + src/models/xgboost_model.py
+    get_transformer_results.py    -> src/cross_validation.py + src/models/transformer_*.py
+    transformer_model_helpers.py  -> src/models/transformer_model.py
+    shap_analysis.py              -> src/analysis/shap_analysis.py (plotting) and
+                                     src/cross_validation.py::_fold_shap (out-of-fold values)
+
+Do not use for the resubmission: none of these carry the fold-local imputation,
+the nested hyperparameter search, the stratified split, or the out-of-fold SHAP.
+"""
+
+"""
 Shared SHAP Analysis Module for AKI-CKD Prediction Models
 
 This module provides standardized SHAP analysis functions for both XGBoost and

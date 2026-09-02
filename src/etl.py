@@ -15,8 +15,10 @@ import numpy as np
 import pandas as pd
 
 import sys
+sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import config
+from lab_normalization import add_canonical_name, write_lab_normalization_report
 
 
 # ---------------------------------------------------------------------------
@@ -70,6 +72,18 @@ def record_value(v):
 
 
 def test_name(n):
+    """SUPERSEDED by lab_normalization.normalize_test_name.
+
+    Kept for reference only. It handled three special cases and passed every
+    other name through unchanged, which is how random glucose reached the
+    feature set under six in-hospital and ten pre-index name strings (editor
+    point 5). Note also the typo: names containing "GFR" were mapped to
+    "eGRF", so the eGFR features in features.csv were spelled "eGRF" while
+    Appendix Table A3.2 reports them as "eGFR".
+
+    Set config.NORMALIZE_LAB_NAMES = False to fall back to this behaviour and
+    reproduce the originally submitted feature set.
+    """
     if "CRP" in n: return "C-Reactive Protein"
     if n == "Glucose (mmol/L)": return "Glucose"
     if "GFR" in n or "Glomerular" in n: return "eGRF"
@@ -105,6 +119,43 @@ def _build_crosstab(df, id_col, prefix, name_col, value_col):
     for ct in results[1:]:
         merged = merged.merge(ct, on=id_col, how="left")
     return merged
+
+
+def _prepare_labs(labs_df, top_n, source_label):
+    """Attach the canonical entity name and keep the most frequent entities.
+
+    Entity assignment happens BEFORE the top-N cut. Cutting on raw names first
+    (as the original did) meant a single analyte spread thinly across ten name
+    strings could be dropped entirely while a redundant duplicate of a common
+    one was retained.
+    """
+    if config.NORMALIZE_LAB_NAMES:
+        labs_df = add_canonical_name(labs_df)
+        name_col = "canonical_test"
+        n_raw = labs_df["TEST_NM"].nunique()
+        n_entities = labs_df[name_col].nunique()
+        print(f"[ETL] {source_label}: {n_raw} raw test names -> "
+              f"{n_entities} clinical entities")
+    else:
+        labs_df = labs_df.copy()
+        labs_df["canonical_test"] = labs_df["TEST_NM"].apply(test_name)
+        name_col = "canonical_test"
+        print(f"[ETL] {source_label}: lab normalization DISABLED "
+              f"(config.NORMALIZE_LAB_NAMES=False) — reproducing the submitted "
+              f"feature set")
+
+    top = list(labs_df[name_col].value_counts().index)[:top_n]
+    labs_df = labs_df[labs_df[name_col].isin(top)]
+
+    numeric = labs_df["TEST_RSLT"].astype(str).apply(
+        lambda x: x.replace(".", "", 1).replace("-", "", 1).isnumeric())
+    labs_df = labs_df[numeric]
+
+    labs_df["patient_id"] = labs_df["id"]
+    labs_df["test_date"] = pd.to_datetime(labs_df["test_date"], errors="coerce")
+    labs_df["name"] = labs_df[name_col]
+    labs_df["result"] = labs_df["TEST_RSLT"].astype(float)
+    return labs_df
 
 
 # ---------------------------------------------------------------------------
@@ -237,16 +288,8 @@ def run_etl():
         consults_ct = pd.DataFrame(columns=["patient_id"])
 
     # ---- 5. In-hospital labs ----
-    index_labs = pd.read_csv(os.path.join(raw_dir, "in-hosp labs.csv"))
-    top_labs = list(index_labs["TEST_NM"].value_counts().index)[:34]
-    index_labs = index_labs[index_labs["TEST_NM"].isin(top_labs)]
-    index_labs = index_labs[index_labs["TEST_RSLT"].astype(str).apply(
-        lambda x: x.replace(".", "", 1).replace("-", "", 1).isnumeric()
-    )]
-    index_labs["patient_id"] = index_labs["id"]
-    index_labs["test_date"] = pd.to_datetime(index_labs["test_date"])
-    index_labs["name"] = index_labs["TEST_NM"].apply(test_name)
-    index_labs["result"] = index_labs["TEST_RSLT"].astype(float)
+    index_labs_all = pd.read_csv(os.path.join(raw_dir, "in-hosp labs.csv"))
+    index_labs = _prepare_labs(index_labs_all, config.TOP_LABS_IN_HOSPITAL, "in-hosp labs")
 
     index_labs_crosstab = _build_crosstab(
         index_labs, "patient_id", "labs", "name", "result"
@@ -278,17 +321,10 @@ def run_etl():
 
     # ---- 7. Pre-hospital labs ----
     pre_labs_path = os.path.join(raw_dir, "pre-hosp labs.csv")
+    pre_labs_all = None
     if os.path.exists(pre_labs_path):
-        pre_labs = pd.read_csv(pre_labs_path)
-        top_pre = list(pre_labs["TEST_NM"].value_counts().index)[:50]
-        pre_labs = pre_labs[pre_labs["TEST_NM"].isin(top_pre)]
-        pre_labs = pre_labs[pre_labs["TEST_RSLT"].astype(str).apply(
-            lambda x: x.replace(".", "", 1).replace("-", "", 1).isnumeric()
-        )]
-        pre_labs["patient_id"] = pre_labs["id"]
-        pre_labs["test_date"] = pd.to_datetime(pre_labs["test_date"])
-        pre_labs["name"] = pre_labs["TEST_NM"].apply(test_name)
-        pre_labs["result"] = pre_labs["TEST_RSLT"].astype(float)
+        pre_labs_all = pd.read_csv(pre_labs_path)
+        pre_labs = _prepare_labs(pre_labs_all, config.TOP_LABS_PRE_INDEX, "pre-hosp labs")
 
         pre_labs_crosstab = _build_crosstab(
             pre_labs, "patient_id", "pre-index_labs", "name", "result"
@@ -347,6 +383,26 @@ def run_etl():
     features.to_csv(os.path.join(out_dir, "features.csv"), index=False)
     print(f"[ETL] Final merged features -> {features.shape[0]} patients x {features.shape[1]} columns")
     print(f"[ETL] Saved to {os.path.join(out_dir, 'features.csv')}")
+
+    # Audit trail for editor point 5: which raw name strings collapsed into
+    # which clinical entity, and how many redundant columns that removed.
+    if config.NORMALIZE_LAB_NAMES:
+        frames = {"in-hosp": index_labs_all}
+        if pre_labs_all is not None:
+            frames["pre-index"] = pre_labs_all
+        try:
+            write_lab_normalization_report(frames, config.get_reports_dir())
+        except Exception as exc:                                   # noqa: BLE001
+            print(f"[ETL] Could not write the lab normalization audit: {exc}")
+
+    # Column inventory, so Multimedia Appendix 3 regenerates from the run
+    inventory = pd.DataFrame({"index": range(features.shape[1]),
+                              "column": features.columns})
+    os.makedirs(config.get_reports_dir(), exist_ok=True)
+    inventory.to_csv(os.path.join(config.get_reports_dir(),
+                                  "feature_inventory.csv"), index=False)
+    print(f"[ETL] Feature inventory -> "
+          f"{os.path.join(config.get_reports_dir(), 'feature_inventory.csv')}")
 
     return features
 

@@ -1,8 +1,19 @@
 """
 Shared metric computation for cross-validation folds.
 
-Computes confusion-matrix-derived metrics, ROC/PRC curves, and
-optimal thresholds.  Used by the CV engine for all model types.
+Computes confusion-matrix-derived metrics, ROC/PRC curves and optimal
+thresholds for every model type.
+
+IMPORTANT, and easy to misread: the threshold-dependent numbers here
+(sensitivity, specificity, PPV, NPV, F1, accuracy) are computed from `y_pred`,
+which is the model's own 0.5 decision. They are diagnostics for watching a run,
+NOT the numbers the manuscript reports. Table 4 is computed at the 20%
+referral threshold on recalibrated probabilities by the evaluation suite, and
+`reports/threshold_sweep/` reports the same metrics across the plausible range.
+
+The threshold-free quantities -- `roc_auc` and `prc_auc` -- are directly
+comparable with the reported values, and `roc_auc` is what the equivalence
+testing in src/analysis/equivalence.py consumes.
 """
 
 import numpy as np
@@ -96,19 +107,35 @@ def aggregate_fold_metrics(fold_metrics_list):
     -------
     dict with 'mean_<metric>' and 'std_<metric>' keys.
     """
-    scalar_keys = [
+    reported_keys = [
         "accuracy", "sensitivity", "specificity", "ppv", "npv",
         "f1", "roc_auc", "prc_auc",
         "best_threshold_roc", "best_threshold_prc",
     ]
+    # Any additional scalar the CV engine attached (n, n_events, n_train,
+    # n_features_used, tuning_best_inner_auroc) is aggregated too, rather than
+    # silently dropped.
+    extra_keys = sorted(
+        {k for m in fold_metrics_list for k, v in m.items()
+         if k not in reported_keys and isinstance(v, (int, float, np.generic))
+         and not isinstance(v, bool)}
+    )
+    scalar_keys = reported_keys + [k for k in extra_keys if k != "fold"]
+
     agg = {}
     for key in scalar_keys:
-        values = [m[key] for m in fold_metrics_list]
+        values = [m[key] for m in fold_metrics_list if key in m]
+        if not values:
+            continue
         agg[f"mean_{key}"] = float(np.mean(values))
-        agg[f"std_{key}"] = float(np.std(values))
+        # Sample SD (ddof=1): the folds are a sample, not the population.
+        # Matches the evaluation suite, which switched to ddof=1 for the same
+        # reason -- a population SD understates the spread at k=10.
+        agg[f"std_{key}"] = float(np.std(values, ddof=1)) if len(values) > 1 else float("nan")
 
-    print("\nAggregated Results Over All Folds:")
-    for key in scalar_keys:
-        print(f"  {key:>22s}: {agg[f'mean_{key}']:.4f} +/- {agg[f'std_{key}']:.4f}")
+    print("\nAggregated Results Over All Folds (mean +/- SD across folds):")
+    for key in reported_keys:
+        if f"mean_{key}" in agg:
+            print(f"  {key:>22s}: {agg[f'mean_{key}']:.4f} +/- {agg[f'std_{key}']:.4f}")
 
     return agg

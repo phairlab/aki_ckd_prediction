@@ -1,271 +1,406 @@
 #!/usr/bin/env python3
 """
-Main entry point for the AKI-CKD prediction pipeline.
+AKI-CKD prediction pipeline — main entry point.
 
-Usage examples:
-  python run_pipeline.py                                    # All experiments + NRI
-  python run_pipeline.py --experiments xgb_alberta_raw      # Single experiment
-  python run_pipeline.py --nonsense --skip-shap --skip-umap # Fast test run
-  python run_pipeline.py --server --etl                     # Server: ETL + all experiments
-  python run_pipeline.py --target ckdordeath                # Alternate target
-  python run_pipeline.py --nri-only                         # NRI on existing results
+Typical use
+-----------
+    # Inventory the raw data first (answers the follow-up-labs question)
+    python src/probe_server_data.py --server
+
+    # Everything, tuned, across 4 GPUs
+    python run_pipeline.py --server --etl --gpus 0,1,2,3 --tuning full
+
+    # Fast local check that the plumbing works
+    python run_pipeline.py --nonsense --tuning smoke --gpus cpu
+
+    # Re-run only the post-hoc analyses on existing fold results
+    python run_pipeline.py --server --analyses-only
+
+Stages
+------
+  etl        raw CSVs -> features.csv, with lab entity normalization
+  train      nested cross-validation for each experiment
+  analyses   population/missingness/sample size, competing risk,
+             ascertainment, threshold sweep, equivalence testing
+
+Evaluation (AUROC, calibration, decision curves, risk distributions, bootstrap
+CIs, Nadeau-Bengio comparisons) and net reclassification are produced by the
+lancet-digital-health-eval-suite, not here. `--emit-eval-commands` writes the
+exact invocations against the directories this run produced.
 """
 
+from __future__ import annotations
+
+# ---------------------------------------------------------------------------
+# OpenMP guard -- must run before ANY third-party import
+# ---------------------------------------------------------------------------
+# torch bundles its own OpenMP runtime. A process that has imported torch and
+# then runs multithreaded XGBoost segfaults immediately and silently (exit 139,
+# no Python traceback). KMP_DUPLICATE_LIB_OK does not help; only single-threaded
+# OpenMP does.
+#
+# The pipeline normally keeps them apart by process: XGBoost folds run in
+# workers that never import torch, transformer folds import torch and never
+# touch XGBoost. --sequential collapses that isolation into one process, so
+# OpenMP is pinned to one thread there. It is slower, which is the correct
+# trade for a debugging mode.
+import os as _os
+import sys as _sys
+
+if "--sequential" in _sys.argv:
+    for _var in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS",
+                 "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
+        _os.environ.setdefault(_var, "1")
+
 import argparse
+import json
 import os
 import sys
+from datetime import datetime
 
-# Ensure project root is on the path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import config
 from src.plot_style import setup_global_style
-from src.data_preprocessing import preprocess_data
-from src.cross_validation import run_cross_validation
-from src.analysis.net_reclassification import run_nri_comparisons
-from src.analysis.shap_analysis import perform_shap_analysis_tree, perform_shap_analysis_kernel
-try:
-    from src.analysis.umap_projection import generate_umap_projection
-except ImportError:
-    generate_umap_projection = None
 
+
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="AKI-CKD Prediction Pipeline")
+    p = argparse.ArgumentParser(
+        description="AKI-CKD prediction pipeline",
+        formatter_class=argparse.RawDescriptionHelpFormatter)
 
-    # Data source
-    source = parser.add_mutually_exclusive_group()
+    source = p.add_mutually_exclusive_group()
+    source.add_argument("--smoke", action="store_true",
+                        help="Use the coherent synthetic dataset from "
+                             "src/make_smoke_data.py. Exercises the whole "
+                             "pipeline end to end; results go to a separate tree.")
     source.add_argument("--nonsense", action="store_true",
-                        help="Force use of nonsense test data")
+                        help="Use the legacy column-shuffled data (join key is "
+                             "destroyed; prefer --smoke)")
     source.add_argument("--server", action="store_true",
-                        help="Force use of real server data")
+                        help="Use the real data on the secure server")
 
-    # ETL
-    parser.add_argument("--etl", action="store_true",
-                        help="Run ETL (raw CSVs -> features.csv) before experiments")
+    p.add_argument("--etl", action="store_true",
+                   help="Rebuild features.csv from the raw extracts first")
 
-    # Experiment selection
-    parser.add_argument("--experiments", nargs="+",
-                        choices=list(config.EXPERIMENTS.keys()),
-                        help="Run only these experiments (default: all)")
+    p.add_argument("--experiments", nargs="+", default=None,
+                   help="Run only these experiments (names from config.ALL_EXPERIMENTS)")
+    p.add_argument("--experiments-set", default="primary",
+                   choices=sorted(config.EXPERIMENT_SETS),
+                   help="Named group of experiments to run (default: primary)")
 
-    # Target
-    parser.add_argument("--target", choices=["ckd", "ckdordeath"], default=None,
-                        help="Override target for all experiments")
+    p.add_argument("--tuning", default=config.DEFAULT_TUNING_PROFILE,
+                   choices=sorted(config.TUNING_PROFILES) + ["off"],
+                   help="Hyperparameter search budget per outer fold "
+                        "(default: %(default)s). 'off' reproduces the "
+                        "originally submitted untuned configuration.")
 
-    # Skip flags
-    parser.add_argument("--skip-shap", action="store_true",
-                        help="Skip SHAP analysis")
-    parser.add_argument("--skip-umap", action="store_true",
-                        help="Skip UMAP projections")
-    parser.add_argument("--sex-subgroups", action="store_true",
-                        help="Generate sex-specific subgroup reports (female/male) in addition to whole-cohort results")
+    p.add_argument("--gpus", default="auto",
+                   help="Devices for fold-level parallelism: 'auto', 'cpu', "
+                        "or a comma-separated list such as 0,1,2,3. Repeat an "
+                        "index to place two workers on one GPU.")
+    p.add_argument("--sequential", action="store_true",
+                   help="Run folds in-process. Slower, but tracebacks and pdb work.")
 
-    # NRI only
-    parser.add_argument("--nri-only", action="store_true",
-                        help="Only run NRI comparisons on existing results")
+    p.add_argument("--target", choices=["ckd", "ckdordeath"], default=None,
+                   help="Override the outcome for all experiments")
+    p.add_argument("--skip-shap", action="store_true",
+                   help="Skip out-of-fold SHAP (the slowest per-fold step)")
 
-    return parser.parse_args()
+    p.add_argument("--analyses-only", action="store_true",
+                   help="Skip training; run the post-hoc analyses on existing results")
+    p.add_argument("--skip-analyses", action="store_true",
+                   help="Train only; do not run the post-hoc analyses")
+    p.add_argument("--emit-eval-commands", action="store_true", default=True,
+                   help="Write the evaluation-suite invocations for this run")
+    p.add_argument("--eval-suite-dir", default="../lancet-digital-health-eval-suite",
+                   help="Path to the evaluation suite, for the emitted commands")
 
+    p.add_argument("--bootstrap", type=int, default=config.N_BOOTSTRAP,
+                   help="Bootstrap resamples in the threshold sweep (default: %(default)s)")
 
-def find_latest_experiment_dir(experiment_name):
-    """Find the most recent results folder for a given experiment name."""
-    results_dir = config.get_experiments_dir()
-    if not os.path.isdir(results_dir):
-        return None
-
-    matches = []
-    for d in os.listdir(results_dir):
-        if experiment_name in d and "fold_results" in d:
-            matches.append(os.path.join(results_dir, d))
-
-    if not matches:
-        return None
-    return sorted(matches)[-1]  # latest by timestamp prefix
+    return p.parse_args()
 
 
-def run_shap(exp_config, model, X_data, feature_names, output_dir, device=None):
-    """Run SHAP analysis for a completed experiment."""
-    import pickle
-    import numpy as np
-    import torch
+# ---------------------------------------------------------------------------
+# Stages
+# ---------------------------------------------------------------------------
 
-    if exp_config.model_type == "xgboost":
-        # Use full model trained on entire dataset
-        full_model_path = os.path.join(output_dir, "full_model.pkl")
-        if not os.path.exists(full_model_path):
-            print(f"[SHAP] No full model found at {full_model_path}, skipping.")
-            return
+def run_etl_stage():
+    from src.etl import run_etl
+    print(f"\n{'=' * 70}\nETL\n{'=' * 70}")
+    if config.USE_NONSENSE_DATA:
+        print("[ETL] The legacy nonsense data ships with a prebuilt features.csv "
+              "and has no raw extracts; skipping.")
+        return
+    run_etl()
 
-        with open(full_model_path, "rb") as f:
-            full_model = pickle.load(f)
 
-        # Scale the full dataset
-        full_scaler_path = os.path.join(output_dir, "full_scaler.pkl")
-        with open(full_scaler_path, "rb") as f:
-            full_scaler = pickle.load(f)
+def run_training_stage(args, devices):
+    """Nested CV for each selected experiment. Returns {name: results_dir}."""
+    from src.data_preprocessing import preprocess_data
+    from src.cross_validation import run_cross_validation
+    from src.analysis.population_table import run_population_analyses
 
-        X_scaled = full_scaler.transform(X_data.astype(float))
+    names = args.experiments or config.EXPERIMENT_SETS[args.experiments_set]
+    names = [config.resolve_experiment_name(n) for n in names]
 
-        # Apply feature selection if used
-        full_rfe_path = os.path.join(output_dir, "full_rfe.pkl")
-        if os.path.exists(full_rfe_path):
-            with open(full_rfe_path, "rb") as f:
-                rfe = pickle.load(f)
-            X_scaled = rfe.transform(X_scaled)
-            feature_names = feature_names[rfe.support_]
+    unknown = [n for n in names if n not in config.ALL_EXPERIMENTS]
+    if unknown:
+        raise SystemExit(f"Unknown experiment(s): {unknown}\n"
+                         f"Available: {sorted(config.ALL_EXPERIMENTS)}")
 
-        perform_shap_analysis_tree(full_model, X_scaled, feature_names, output_dir)
+    print(f"\n{'=' * 70}")
+    print(f"TRAINING — {len(names)} experiment(s), tuning profile '{args.tuning}'")
+    print(f"{'=' * 70}")
+    for n in names:
+        print(f"  - {n}")
 
-    elif exp_config.model_type == "transformer":
-        # Load last fold model for SHAP (KernelExplainer)
-        from src.models.transformer_model import TabularTransformer, LargeTabularTransformer
-        from sklearn.preprocessing import StandardScaler
+    experiment_dirs = {}
+    population_done = False
 
-        scaler = StandardScaler()
-        X_scaled = scaler.fit_transform(X_data.astype(float))
-        X_scaled = np.nan_to_num(X_scaled, nan=0.0)
+    risky = [n for n in names
+             if config.ALL_EXPERIMENTS[n].model_type == "transformer"
+             and config.ALL_EXPERIMENTS[n].feature_selection_method == "rfe"]
+    if risky:
+        print(f"\n  WARNING: {risky} use RFE, whose estimator is XGBoost, inside a "
+              f"transformer\n  worker that also imports torch. On some installs that "
+              f"combination segfaults\n  (see src/parallel.py). Prefer "
+              f"feature_selection_method='selectkbest' for transformers.")
 
-        if device is None:
-            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    for name in names:
+        exp = config.ALL_EXPERIMENTS[name]
+        exp = config.apply_tuning_profile(exp, args.tuning)
 
-        # Find a fold model to load
-        model_path = os.path.join(output_dir, "fold_1_model.pt")
-        if not os.path.exists(model_path):
-            print("[SHAP] No fold model found, skipping.")
-            return
+        from dataclasses import replace
+        if args.target:
+            exp = replace(exp, target=args.target)
+        if args.skip_shap:
+            exp = replace(exp, perform_shap=False)
 
-        # Infer n_features from saved model to avoid shape mismatch
-        state_dict = torch.load(model_path, map_location="cpu")
-        n_features_model = state_dict["input_embedding.weight"].shape[1]
+        data = preprocess_data(exp)
 
-        # Check if current data matches model's expected features
-        if X_scaled.shape[1] != n_features_model:
-            print(f"[SHAP] Feature mismatch: data has {X_scaled.shape[1]} features, "
-                  f"model expects {n_features_model}. Using first {n_features_model} features.")
-            X_scaled = X_scaled[:, :n_features_model]
-            feature_names = feature_names[:n_features_model]
+        # Population, missingness and sample-size tables depend only on the
+        # cohort, so they are produced once from the first experiment's data.
+        if not population_done:
+            run_population_analyses(data, config.get_reports_dir())
+            data["cohort_log"].save(config.get_reports_dir())
+            population_done = True
 
-        if exp_config.model_size == "large":
-            model = LargeTabularTransformer(n_features_model)
-        else:
-            model = TabularTransformer(n_features_model)
-        model.load_state_dict(state_dict)
-        model.to("cpu")  # SHAP on CPU to avoid CUDA kernel errors with variable batch sizes
-        model.eval()
+        experiment_dirs[name] = run_cross_validation(
+            exp, data, devices=devices, sequential=args.sequential)
 
-        def predict_fn(X):
-            with torch.no_grad():
-                X_tensor = torch.FloatTensor(X)
-                outputs = model(X_tensor)
-                probs = torch.softmax(outputs, dim=1).numpy()
-            return probs
+    return experiment_dirs
 
-        perform_shap_analysis_kernel(predict_fn, X_scaled, feature_names, output_dir)
 
+def run_analyses_stage(args, experiment_dirs):
+    """Every post-hoc analysis that reads the fold predictions."""
+    from src.analysis import predictions as pred_mod
+    from src.analysis.competing_risk import run_competing_risk_analysis
+    from src.analysis.ascertainment import run_ascertainment_analysis
+    from src.analysis.threshold_sweep import run_threshold_sweep, emit_nri_sweep_commands
+    from src.analysis.equivalence import run_equivalence_analysis
+    from src.data_preprocessing import preprocess_data
+
+    reports = config.get_reports_dir()
+    os.makedirs(reports, exist_ok=True)
+
+    # Keep this repository's recalibration identical to the evaluation suite's.
+    pred_mod.verify_against_eval_suite()
+
+    print(f"\n{'=' * 70}\nLOADING POOLED OUT-OF-FOLD PREDICTIONS\n{'=' * 70}")
+    experiment_predictions = pred_mod.load_many(experiment_dirs, recalibrate=True)
+    if not experiment_predictions:
+        print("No experiment predictions found; nothing to analyse.")
+        return
+
+    for name, df in experiment_predictions.items():
+        print(f"  {name:<28s} {len(df):>6,} patients, "
+              f"{int(df['y_true'].sum()):>4} events")
+
+    # Cohort frame for the analyses that need patient characteristics.
+    #
+    # Deliberately built from a james_score configuration rather than from
+    # whichever experiment happens to be first: the expanded feature set
+    # one-hot encodes `highest_stage` and `albuminuria_status_raw` away, and the
+    # tested-vs-untested comparison needs them as categoricals.
+    cohort_config = config.EXPERIMENTS["logreg_james_score"]
+    features_df = preprocess_data(cohort_config, verbose=False)["features_df"]
+
+    run_competing_risk_analysis(
+        experiment_predictions, features_df,
+        output_dir=os.path.join(reports, "competing_risk"),
+        threshold=config.PRIMARY_THRESHOLD)
+
+    run_ascertainment_analysis(
+        experiment_predictions, features_df,
+        followup_labs_path=config.get_followup_labs_path(),
+        output_dir=os.path.join(reports, "ascertainment"),
+        threshold=config.PRIMARY_THRESHOLD)
+
+    run_threshold_sweep(
+        experiment_predictions, config.THRESHOLD_SWEEP,
+        output_dir=os.path.join(reports, "threshold_sweep"),
+        n_boot=args.bootstrap, ci_level=config.CI_LEVEL,
+        labels=config.EXPERIMENT_LABELS)
+
+    baseline = (config.NRI_BASELINE if config.NRI_BASELINE in experiment_dirs
+                else next(iter(experiment_dirs)))
+    try:
+        run_equivalence_analysis(
+            experiment_dirs, baseline,
+            output_dir=os.path.join(reports, "equivalence"),
+            margin=config.EQUIVALENCE_MARGIN_AUROC,
+            metric="roc_auc", ci_level=config.CI_LEVEL,
+            labels=config.EXPERIMENT_LABELS)
+    except (KeyError, FileNotFoundError) as exc:
+        print(f"[Equivalence] Skipped: {exc}")
+
+    emit_nri_sweep_commands(
+        experiment_dirs, baseline, config.THRESHOLD_SWEEP,
+        output_dir=os.path.join(reports, "threshold_sweep"),
+        eval_suite_dir=args.eval_suite_dir)
+
+
+# ---------------------------------------------------------------------------
+# Handoff to the evaluation suite
+# ---------------------------------------------------------------------------
+
+def emit_eval_commands(experiment_dirs, args):
+    """Write an ordering file and a runnable script for the evaluation suite."""
+    reports = config.get_reports_dir()
+    os.makedirs(reports, exist_ok=True)
+
+    ordering = {os.path.basename(path): config.EXPERIMENT_LABELS.get(name, name)
+                for name, path in experiment_dirs.items()}
+    ordering_path = os.path.join(reports, "ordering.json")
+    with open(ordering_path, "w") as f:
+        json.dump(ordering, f, indent=4)
+
+    results_root = config.get_experiments_dir()
+    baseline = (config.NRI_BASELINE if config.NRI_BASELINE in experiment_dirs
+                else next(iter(experiment_dirs), None))
+    baseline_dir = experiment_dirs.get(baseline, "")
+
+    script = f"""#!/usr/bin/env bash
+# Evaluation and reclassification for this run.
+# Generated by run_pipeline.py on {datetime.now():%Y-%m-%d %H:%M}.
+#
+# Discrimination, calibration, decision curves, risk distributions, bootstrap
+# CIs and the Nadeau-Bengio comparisons all come from the evaluation suite, and
+# NRI comes from nri.py there -- this repository deliberately ships no second
+# implementation of either.
+set -euo pipefail
+
+EVAL_SUITE="{args.eval_suite_dir}"
+RESULTS="{os.path.abspath(results_root)}"
+ORDERING="{os.path.abspath(ordering_path)}"
+REPORTS="{os.path.abspath(reports)}"
+
+cd "$EVAL_SUITE"
+
+echo "=== Core evaluation (Tables 4/A2.1, Figures 2-4, A2.1-A2.2) ==="
+python ldh_eval.py \\
+    --input_dir "$RESULTS" \\
+    --recurse \\
+    --recalibrate \\
+    --threshold {config.PRIMARY_THRESHOLD} \\
+    --bengio-correction \\
+    --ordering "$ORDERING" \\
+    --bootstrap {config.N_BOOTSTRAP} \\
+    --ci-level {config.CI_LEVEL} \\
+    --seed {config.RANDOM_SEED}
+
+echo "=== Net reclassification at the primary threshold (Table 5) ==="
+python nri.py \\
+    --baseline_dir "{os.path.abspath(baseline_dir)}" \\
+    --ordering "$ORDERING" \\
+    --threshold {config.PRIMARY_THRESHOLD} \\
+    --recalibrate \\
+    --bootstrap {config.N_BOOTSTRAP} \\
+    --ci-level {config.CI_LEVEL} \\
+    --seed {config.RANDOM_SEED} \\
+    --output_csv "$REPORTS/nri_table5.csv"
+
+echo
+echo "For reclassification across the full threshold range (editor point 7b), run:"
+echo "  $REPORTS/threshold_sweep/run_nri_threshold_sweep.sh"
+"""
+    path = os.path.join(reports, "run_evaluation.sh")
+    with open(path, "w") as f:
+        f.write(script)
+    os.chmod(path, 0o755)
+
+    print(f"\n[Eval] Ordering file  -> {ordering_path}")
+    print(f"[Eval] Run next       -> {path}")
+    return path
+
+
+# ---------------------------------------------------------------------------
 
 def main():
     args = parse_args()
 
-    # Set data source
-    if args.nonsense:
-        config.USE_NONSENSE_DATA = True
+    if args.smoke:
+        config.USE_SMOKE_DATA, config.USE_NONSENSE_DATA = True, False
+    elif args.nonsense:
+        config.USE_SMOKE_DATA, config.USE_NONSENSE_DATA = False, True
     elif args.server:
-        config.USE_NONSENSE_DATA = False
+        config.USE_SMOKE_DATA, config.USE_NONSENSE_DATA = False, False
 
-    print(f"Data source: {'nonsense' if config.USE_NONSENSE_DATA else 'server'}")
+    from src import parallel
+    devices = parallel.resolve_devices(args.gpus)
 
-    # Plot styling
+    started = datetime.now()
+    print(f"\n{'#' * 70}")
+    print(f"# AKI-CKD PREDICTION PIPELINE")
+    print(f"# started   : {started:%Y-%m-%d %H:%M:%S}")
+    data_label = ("smoke (coherent synthetic)" if config.USE_SMOKE_DATA
+                  else "nonsense (column-shuffled)" if config.USE_NONSENSE_DATA
+                  else "secure server")
+    print(f"# data      : {data_label}")
+    print(f"# tuning    : {args.tuning}")
+    print(f"# devices   : {parallel.describe_devices(devices)}")
+    if args.sequential:
+        print(f"# threads   : OpenMP pinned to 1 (--sequential; see src/parallel.py)")
+    print(f"# results   : {config.get_experiments_dir()}")
+    print(f"# reports   : {config.get_reports_dir()}")
+    print(f"{'#' * 70}")
+
     setup_global_style()
+    os.makedirs(config.get_reports_dir(), exist_ok=True)
 
-    # ETL
     if args.etl:
-        if config.USE_NONSENSE_DATA:
-            print("[ETL] Skipping ETL (nonsense data already has features.csv)")
-        else:
-            from src.etl import run_etl
-            run_etl()
+        run_etl_stage()
 
-    # NRI-only mode
-    if args.nri_only:
-        experiment_dirs = {}
-        # Scan results directory for all experiment folders, not just those in config
-        results_dir = config.get_experiments_dir()
-        if os.path.isdir(results_dir):
-            for d in os.listdir(results_dir):
-                if "fold_results" not in d:
-                    continue
-                # Extract experiment name from folder (format: YYYYMMDD_HHMM_<name>_fold_results)
-                parts = d.split("_")
-                if len(parts) >= 4:
-                    # Join everything between timestamp and "fold_results"
-                    name = "_".join(parts[2:-2])
-                    full_path = os.path.join(results_dir, d)
-                    # Keep only the latest if multiple runs exist
-                    if name not in experiment_dirs or d > os.path.basename(experiment_dirs[name]):
-                        experiment_dirs[name] = full_path
-        print(f"[NRI] Found {len(experiment_dirs)} experiment(s): {list(experiment_dirs.keys())}")
-        run_nri_comparisons(experiment_dirs)
-        return
-
-    # Select experiments
-    experiment_names = args.experiments or list(config.EXPERIMENTS.keys())
-
-    # Run experiments
-    experiment_dirs = {}
-
-    for name in experiment_names:
-        exp_config = config.EXPERIMENTS[name]
-
-        # Override target if specified
-        if args.target:
-            exp_config = config.ExperimentConfig(
-                **{**exp_config.__dict__, "target": args.target}
-            )
-
-        # Override SHAP/UMAP flags
-        if args.skip_shap:
-            exp_config = config.ExperimentConfig(
-                **{**exp_config.__dict__, "perform_shap": False}
-            )
-        if args.skip_umap:
-            exp_config = config.ExperimentConfig(
-                **{**exp_config.__dict__, "perform_umap": False}
-            )
-        if args.sex_subgroups:
-            exp_config = config.ExperimentConfig(
-                **{**exp_config.__dict__, "sex_subgroups": True}
-            )
-
-        # Preprocess
-        data = preprocess_data(exp_config)
-
-        # Cross-validation
-        output_dir = run_cross_validation(exp_config, data)
-        experiment_dirs[name] = output_dir
-
-        # SHAP
-        if exp_config.perform_shap:
-            run_shap(exp_config, None, data["features"], data["feature_names"],
-                     output_dir)
-
-        # UMAP
-        if exp_config.perform_umap:
-            if generate_umap_projection is None:
-                print("[UMAP] UMAP module not available, skipping projection.")
-            else:
-                generate_umap_projection(
-                    data["features"], data["labels"],
-                    output_dir, exp_config.name,
-                )
-
-    # NRI comparisons
-    if len(experiment_dirs) > 1:
-        run_nri_comparisons(experiment_dirs)
+    if args.analyses_only:
+        from src.analysis.predictions import find_experiment_dirs
+        experiment_dirs = find_experiment_dirs(config.get_experiments_dir())
+        if not experiment_dirs:
+            raise SystemExit(
+                f"--analyses-only found no *_fold_results directories in "
+                f"{config.get_experiments_dir()}. Train first.")
+        print(f"\nFound {len(experiment_dirs)} existing experiment(s): "
+              f"{sorted(experiment_dirs)}")
     else:
-        print("\n[NRI] Skipping NRI (need at least 2 experiments)")
+        experiment_dirs = run_training_stage(args, devices)
 
-    print("\nPipeline complete.")
+    if not args.skip_analyses:
+        run_analyses_stage(args, experiment_dirs)
+
+    if args.emit_eval_commands and experiment_dirs:
+        emit_eval_commands(experiment_dirs, args)
+
+    elapsed = datetime.now() - started
+    print(f"\n{'#' * 70}")
+    print(f"# Pipeline complete in {elapsed}")
+    print(f"# Manuscript-ready tables: {config.get_reports_dir()}")
+    print(f"# Next: bash {os.path.join(config.get_reports_dir(), 'run_evaluation.sh')}")
+    print(f"{'#' * 70}\n")
 
 
 if __name__ == "__main__":

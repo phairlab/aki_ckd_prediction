@@ -174,3 +174,11 @@ cython_debug/
 .pypirc
 
 experiments/
+# Generated synthetic test data
+smoke_data/
+
+# Generated manuscript tables
+reports/
+
+# macOS
+.DS_Store

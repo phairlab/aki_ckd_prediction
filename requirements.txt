@@ -1,8 +1,24 @@
-numpy
-pandas
-scikit-learn
-xgboost
-torch
-shap
+# Core
+numpy>=1.24,<3
+pandas>=2.0
+scikit-learn>=1.3
+scipy>=1.10
+matplotlib>=3.7
+
+# Models
+xgboost>=2.0
+torch>=2.0
+
+# Hyperparameter search (editor point 1). Falls back to seeded random search
+# if absent, but TPE is what the manuscript should cite.
+optuna>=3.4
+
+# Interpretability (editor point 6)
+shap>=0.44
+
+# Optional: UMAP is not recomputed for the resubmission (the editor said it
+# need not be), but the module is kept working.
 umap-learn==0.5.6
-matplotlib
+
+# The evaluation suite additionally needs statsmodels and seaborn; install its
+# own requirements.txt in the same environment if running both from one venv.
