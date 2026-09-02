@@ -408,54 +408,92 @@ NEVER_CONVERT = {"urate_urine", "creatinine_urine", "protein_urine",
 def harmonise_units(labs_df, entity_col="canonical_test",
                     unit_col="TEST_UOFM", value_col="TEST_RSLT",
                     out_entity_col="canonical_test_unit", verbose=True):
-    """Convert to a canonical unit per entity; split or drop when we cannot.
+    """Put each entity on one unit; split or drop only when that is impossible.
 
-    Three outcomes per entity:
-      * listed in LAB_UNIT_CONVERSIONS -- values converted into the canonical
-        unit, and rows whose unit is not in its table are DROPPED and counted
-      * listed in NEVER_CONVERT, or unlisted with several units -- SPLIT, with
-        the unit appended to the entity name
-      * unlisted with a single unit -- untouched
+    Four stages, in order.
+
+    1. ATTRIBUTE BLANK UNITS. A missing unit label is not a different unit.
+       Treating it as one split eGFR -- 113,561 rows in mL/min/1.73m2 and 6,737
+       with no unit recorded -- into two columns, fragmenting the single most
+       important analyte in the study, and did the same to CRP, phosphate,
+       cholesterol and the urine dipstick. Blanks are attributed to the
+       entity's modal recorded unit. An entity with no recorded unit anywhere
+       has nothing to attribute to, and is left alone rather than dropped.
+
+    2. CONVERT, for entities in LAB_UNIT_CONVERSIONS, into the canonical unit.
+
+    3. DROP rows whose unit is not in that entity's conversion table -- urate
+       reported in "%", for instance. Counted, never assumed.
+
+    4. SPLIT what remains: an entity in NEVER_CONVERT, or an unlisted entity
+       with several units. urate_urine is mmol/d (24-hour excretion) and
+       mmol/L (spot concentration), which are different quantities.
 
     Returns (dataframe, report).
     """
     df = labs_df.copy()
-    df["__unit_clean"] = df[unit_col].map(_clean)
+    df["__unit"] = df[unit_col].map(_clean)
     df["__value"] = pd.to_numeric(df[value_col], errors="coerce")
     df[out_entity_col] = df[entity_col]
 
-    report = {"converted": {}, "dropped": {}, "split": {}}
+    report = {"unit_assumed": {}, "converted": {}, "dropped": {}, "split": {}}
+
+    # --- 1. blank units -> modal recorded unit -----------------------------
+    for entity in df[entity_col].unique():
+        rows = df.index[df[entity_col] == entity]
+        blank = [i for i in rows if df.at[i, "__unit"] == ""]
+        if not blank:
+            continue
+        recorded = df.loc[rows, "__unit"]
+        recorded = recorded[recorded != ""]
+        if recorded.empty:
+            continue
+        modal = recorded.value_counts().idxmax()
+        df.loc[blank, "__unit"] = modal
+        report["unit_assumed"][entity] = {
+            "n_rows": len(blank),
+            "assumed_unit": modal,
+            "share_of_entity": round(len(blank) / len(rows), 4),
+        }
+
+    # --- 2-4. convert, drop, split -----------------------------------------
     drop_mask = pd.Series(False, index=df.index)
 
-    for entity, group in df.groupby(entity_col):
-        units = sorted(set(group["__unit_clean"]) - {""}) +                 (["<none>"] if (group["__unit_clean"] == "").any() else [])
+    for entity in df[entity_col].unique():
+        rows = df.index[df[entity_col] == entity]
+        units = sorted(set(df.loc[rows, "__unit"]) - {""})
 
         if entity in LAB_UNIT_CONVERSIONS and entity not in NEVER_CONVERT:
             canonical, factors = LAB_UNIT_CONVERSIONS[entity]
-            for unit in set(group["__unit_clean"]):
-                rows = group.index[group["__unit_clean"] == unit]
+            for unit in units:
+                unit_rows = [i for i in rows if df.at[i, "__unit"] == unit]
                 factor = factors.get(unit)
                 if factor is None:
-                    drop_mask.loc[rows] = True
-                    report["dropped"].setdefault(entity, {})[unit or "<none>"] = len(rows)
+                    drop_mask.loc[unit_rows] = True
+                    report["dropped"].setdefault(entity, {})[unit] = len(unit_rows)
                 elif factor != 1.0:
-                    df.loc[rows, "__value"] = df.loc[rows, "__value"] * factor
-                    report["converted"].setdefault(entity, {})[unit] = len(rows)
+                    df.loc[unit_rows, "__value"] = (
+                        df.loc[unit_rows, "__value"] * factor)
+                    report["converted"].setdefault(entity, {})[unit] = len(unit_rows)
             continue
 
         if len(units) > 1:
-            for unit in set(group["__unit_clean"]):
-                rows = group.index[group["__unit_clean"] == unit]
-                df.loc[rows, out_entity_col] = f"{entity}__{unit_slug(unit)}"
+            for unit in set(df.loc[rows, "__unit"]):
+                unit_rows = [i for i in rows if df.at[i, "__unit"] == unit]
+                df.loc[unit_rows, out_entity_col] = f"{entity}__{unit_slug(unit)}"
             report["split"][entity] = units
 
     if drop_mask.any():
         df = df[~drop_mask]
 
     df[value_col] = df["__value"]
-    df = df.drop(columns=["__unit_clean", "__value"])
+    df = df.drop(columns=["__unit", "__value"])
 
     if verbose:
+        for entity, info in report["unit_assumed"].items():
+            print(f"[LabNorm] {entity}: {info['n_rows']:,} row(s) had no unit "
+                  f"recorded ({info['share_of_entity'] * 100:.1f}%); attributed "
+                  f"to the modal unit {info['assumed_unit']!r}")
         for entity, units in report["converted"].items():
             canonical = LAB_UNIT_CONVERSIONS[entity][0]
             detail = ", ".join(f"{u}={n:,}" for u, n in units.items())
