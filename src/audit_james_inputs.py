@@ -342,6 +342,124 @@ def completeness_sweep(labs, output_dir):
             "n_candidates_unused": int((~grouped["used_by_score"]).sum())}
 
 
+# ---------------------------------------------------------------------------
+# 5. Would urine protein:creatinine change anyone's albuminuria band?
+# ---------------------------------------------------------------------------
+# The completeness sweep showed ~910 urine protein:creatinine (uPCR) results,
+# which the score does not use. That exclusion is FAITHFUL to the published
+# score -- James et al. define the albuminuria component on ACR or urine
+# dipstick -- and keeping it is what preserves the like-for-like comparison the
+# manuscript rests on.
+#
+# But KDIGO accepts uPCR as an alternative when ACR is unavailable, so a
+# nephrology reviewer may reasonably ask why data on hand went unused. The
+# answer should be a number, not a principle: how many patients are currently
+# scored "unmeasured" -- worth 1 point, the same as mild -- while having a uPCR
+# in the window?
+#
+# If that count is small the exclusion is immaterial and can be stated as such.
+# If it is large, a sensitivity analysis adding uPCR is worth running.
+
+ALBUMINURIA_WINDOW_DAYS_BEFORE_ADMIT = 180   # as in get_albuminuria_status
+
+
+def audit_upcr_availability(labs, output_dir):
+    """Cross-tabulate ACR / dipstick / uPCR availability per patient."""
+    print(f"\n{'=' * 74}\n5. UNUSED URINE PROTEIN:CREATININE RESULTS\n{'=' * 74}")
+
+    raw_dir = config.get_raw_data_dir()
+    cohort_path = os.path.join(raw_dir, "cohort and outcome.csv")
+    if not os.path.exists(cohort_path):
+        cohort_path = os.path.join(raw_dir, "cohort.csv")
+    if not os.path.exists(cohort_path):
+        print("  SKIPPED: no cohort file found to supply admission dates.")
+        return {}
+
+    cohort = pd.read_csv(cohort_path, low_memory=False)
+    id_col = "id" if "id" in cohort.columns else "patient_id"
+    admit_col = "AdmitDt" if "AdmitDt" in cohort.columns else "admit_date"
+    disch_col = "DischDt" if "DischDt" in cohort.columns else "discharge_date"
+
+    cohort = cohort[[id_col, admit_col, disch_col]].copy()
+    cohort.columns = ["id", "admit", "discharge"]
+    cohort["id"] = cohort["id"].astype(str)
+    cohort["admit"] = pd.to_datetime(cohort["admit"], errors="coerce")
+    cohort["discharge"] = pd.to_datetime(cohort["discharge"], errors="coerce")
+
+    work = labs.copy()
+    work["id"] = work["id"].astype(str)
+    work["test_date"] = pd.to_datetime(work["test_date"], errors="coerce")
+    work = work.merge(cohort, on="id", how="inner")
+
+    in_window = (
+        (work["test_date"] >= work["admit"]
+         - pd.Timedelta(days=ALBUMINURIA_WINDOW_DAYS_BEFORE_ADMIT))
+        & (work["test_date"] <= work["discharge"])
+    )
+    win = work[in_window]
+
+    def patients_with(entity):
+        return set(win.loc[win["canonical_test"] == entity, "id"])
+
+    acr = patients_with("albumin_creatinine_ratio")
+    dip = patients_with("urine_dipstick")
+    pcr = patients_with("protein_creatinine_ratio")
+    everyone = set(cohort["id"])
+
+    measured = acr | dip
+    unmeasured = everyone - measured
+    rescuable = unmeasured & pcr
+
+    print(f"  cohort                                   : {len(everyone):,}")
+    print(f"  with an ACR in the window                : {len(acr):,}")
+    print(f"  with a dipstick in the window            : {len(dip):,}")
+    print(f"  measured by the score (ACR or dipstick)  : {len(measured):,} "
+          f"({len(measured) / len(everyone) * 100:.1f}%)")
+    print(f"  scored 'unmeasured' (1 point)            : {len(unmeasured):,} "
+          f"({len(unmeasured) / len(everyone) * 100:.1f}%)")
+    print(f"  with a uPCR in the window                : {len(pcr):,}")
+    print(f"\n  >>> scored 'unmeasured' BUT have a uPCR  : {len(rescuable):,} "
+          f"({len(rescuable) / len(everyone) * 100:.2f}% of the cohort)")
+
+    result = {
+        "n_cohort": len(everyone),
+        "n_with_acr": len(acr),
+        "n_with_dipstick": len(dip),
+        "n_measured_by_score": len(measured),
+        "n_unmeasured": len(unmeasured),
+        "n_with_upcr": len(pcr),
+        "n_unmeasured_with_upcr": len(rescuable),
+        "pct_unmeasured_with_upcr": round(
+            100 * len(rescuable) / max(len(everyone), 1), 3),
+    }
+
+    if not rescuable:
+        print("\n  No patient would gain albuminuria information from uPCR. The")
+        print("  exclusion is immaterial and can be stated as such: uPCR results")
+        print("  exist in the extract but only for patients who already had an ACR")
+        print("  or a dipstick, so following the published score costs nothing.")
+    else:
+        share = len(rescuable) / max(len(unmeasured), 1)
+        print(f"\n  That is {share * 100:.1f}% of the currently-unmeasured group.")
+        if len(rescuable) / len(everyone) < 0.01:
+            print("  Under 1% of the cohort. Report the number and note that the")
+            print("  primary analysis follows the published score definition; a")
+            print("  sensitivity analysis is unlikely to move anything.")
+        else:
+            print("  Large enough to be worth a sensitivity analysis. KDIGO accepts")
+            print("  uPCR when ACR is unavailable, so these patients have albuminuria")
+            print("  information that the score currently discards, and each is")
+            print("  carrying the default 1 point instead of a measured band.")
+            print("  Keep the published definition as primary -- it is what preserves")
+            print("  comparability with James et al. and the Grampian validation --")
+            print("  and report the uPCR-augmented version alongside it.")
+        pd.DataFrame({"patient_id": sorted(rescuable)}).to_csv(
+            os.path.join(output_dir, "james_audit_unmeasured_with_upcr.csv"),
+            index=False)
+
+    return result
+
+
 def main():
     p = argparse.ArgumentParser(description="Audit the James score's lab selection")
     source = p.add_mutually_exclusive_group()
@@ -363,6 +481,7 @@ def main():
     result.update(audit_creatinine(labs, output_dir))
     audit_units(labs)
     result.update(completeness_sweep(labs, output_dir))
+    result.update(audit_upcr_availability(labs, output_dir))
 
     print(f"\n{'=' * 74}\nSUMMARY\n{'=' * 74}")
     clean = (result["acr_missed_rows"] == 0

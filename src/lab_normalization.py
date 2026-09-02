@@ -56,8 +56,13 @@ PROTECTED_RULES: tuple[tuple[str, str], ...] = (
     # below -- splitting one assay across two feature columns and inventing a
     # spurious creatinine_urine column. Same trap for "Protein/creatinine",
     # which was only rescued by its lab_test_category.
-    (r"albumin\s*/?\s*creatinine|\bacr\b",              "albumin_creatinine_ratio"),
-    (r"protein\s*/?\s*creatinine",                     "protein_creatinine_ratio"),
+    # "creat" rather than "creatinine": the extract contains
+    # "PROTEIN/CREAT RATIO,UR RANDOM", which requiring the full word sent to
+    # protein_urine instead, splitting one assay across two feature columns.
+    # "creat" is a prefix of "creatinine" so this covers both spellings.
+    (r"(?:microalbumin|albumin|\balb)\s*[/,]?\s*creat",  "albumin_creatinine_ratio"),
+    (r"\bacr\b",                                        "albumin_creatinine_ratio"),
+    (r"protein\s*[/,]?\s*creat",                        "protein_creatinine_ratio"),
     (r"creatinine.*urine|urine.*creatinine",           "creatinine_urine"),
     (r"creatinine\s*clearance",                        "creatinine_clearance"),
     (r"dipstick|urinalysis|\bua\b",                    "urine_dipstick"),
@@ -436,6 +441,12 @@ SELF_TEST_CASES: tuple[tuple[str, str], ...] = (
     ("Albumin/Creatinine, Urine", "albumin_creatinine_ratio"),
     ("Albumin/Creatinine Ratio", "albumin_creatinine_ratio"),
     ("Protein/creatinine", "protein_creatinine_ratio"),
+    # Abbreviated forms present in the real extract
+    ("PROTEIN/CREAT RATIO,UR RANDOM", "protein_creatinine_ratio"),
+    ("EXT Microalbumin/Creatinine-mg/mmol", "albumin_creatinine_ratio"),
+    ("Albumin/Creatinine Ratio, Urine", "albumin_creatinine_ratio"),
+    ("Protein Urine UA", "urine_dipstick"),
+    ("Protein/Creatinine, Urine, 24h", "protein_creatinine_ratio"),
     # ...and these must still stay distinct from it
     ("Creatinine, Urine", "creatinine_urine"),
     ("Creatinine", "creatinine"),
