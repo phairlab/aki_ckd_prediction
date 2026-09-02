@@ -449,11 +449,21 @@ def harmonise_units(labs_df, entity_col="canonical_test",
         if recorded.empty:
             continue
         modal = recorded.value_counts().idxmax()
+        share = len(blank) / len(rows)
         df.loc[blank, "__unit"] = modal
         report["unit_assumed"][entity] = {
             "n_rows": len(blank),
             "assumed_unit": modal,
-            "share_of_entity": round(len(blank) / len(rows), 4),
+            "share_of_entity": round(share, 4),
+            # A modal unit inferred from a small minority of rows is a weak
+            # inference and worth flagging. On the real extract this fires for
+            # urine_dipstick, where 83% of results are semi-quantitative text
+            # ("NEGATIVE", "1+") carrying no unit -- those rows are then
+            # dropped by the numeric filter anyway, and the dipstick reaches
+            # the James score through classify_single_dipstick_result() on the
+            # raw text, so nothing downstream is affected. Still better said
+            # than silent.
+            "weak_inference": bool(share > 0.5),
         }
 
     # --- 2-4. convert, drop, split -----------------------------------------
@@ -491,9 +501,11 @@ def harmonise_units(labs_df, entity_col="canonical_test",
 
     if verbose:
         for entity, info in report["unit_assumed"].items():
+            flag = ("  <-- most rows lack a unit, so this is a weak inference"
+                    if info["weak_inference"] else "")
             print(f"[LabNorm] {entity}: {info['n_rows']:,} row(s) had no unit "
                   f"recorded ({info['share_of_entity'] * 100:.1f}%); attributed "
-                  f"to the modal unit {info['assumed_unit']!r}")
+                  f"to the modal unit {info['assumed_unit']!r}{flag}")
         for entity, units in report["converted"].items():
             canonical = LAB_UNIT_CONVERSIONS[entity][0]
             detail = ", ".join(f"{u}={n:,}" for u, n in units.items())
