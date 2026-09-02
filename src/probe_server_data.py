@@ -46,6 +46,20 @@ import config
 from lab_normalization import add_canonical_name, audit_lab_names
 
 
+def _preview(items, limit=12):
+    """Short, readable rendering of a long column list.
+
+    features.csv has 478 columns and the crosstab files have hundreds; printing
+    them in full buries the numbers this script exists to report. The complete
+    lists are in reports/server_data_probe.json and reports/feature_inventory.csv.
+    """
+    items = [str(i) for i in items]
+    if len(items) <= limit:
+        return str(items)
+    shown = ", ".join(repr(i) for i in items[:limit])
+    return f"[{shown}, ... +{len(items) - limit} more]"
+
+
 DATE_HINTS = ("date", "dt", "_at")
 EGFR_HINTS = ("egfr", "gfr", "glomerular")
 
@@ -91,7 +105,7 @@ def inventory_files(raw_dir: str) -> list[dict]:
 
         cols = list(head.columns)
         print(f"    rows: {n_rows:,}   cols: {len(cols)}")
-        print(f"    columns: {cols}")
+        print(f"    columns: {_preview(cols)}")
 
         rec = {"file": name, "n_rows": n_rows, "n_cols": len(cols), "columns": cols,
                "size_mb": round(size_mb, 1)}
@@ -144,7 +158,7 @@ def probe_followup_labs(raw_dir: str) -> dict:
 
         needed = {"test_date", "DischDt"}
         if not needed.issubset(df.columns):
-            print(f"    skipped: needs {sorted(needed)}, has {list(df.columns)}")
+            print(f"    skipped: needs {sorted(needed)}, has {_preview(df.columns, 8)}")
             continue
 
         test_date = pd.to_datetime(df["test_date"], errors="coerce")
@@ -255,10 +269,9 @@ def probe_lab_redundancy(raw_dir: str, output_dir: str) -> dict:
                  .groupby("canonical_test")["TEST_NM"].nunique().sort_values(ascending=False))
         if len(split):
             print(f"    entities split across >1 string:")
-            for entity, n in split.head(12).items():
+            for entity, n in split.items():
                 names = sorted(audit.loc[audit["canonical_test"] == entity, "TEST_NM"])
-                print(f"      {entity:<24s} {n:>2d} strings: {names[:4]}"
-                      + (" ..." if len(names) > 4 else ""))
+                print(f"      {entity:<24s} {n:>2d} strings: {_preview(names, 8)}")
 
         summary[label] = {
             "n_raw_names": int(n_raw),
@@ -312,8 +325,8 @@ def probe_outcome(raw_dir: str) -> dict:
 
     egfr_cols = [c for c in df.columns if any(h in c.lower() for h in EGFR_HINTS)]
     date_cols = [c for c in df.columns if _is_datelike(c)]
-    print(f"  eGFR-like columns : {egfr_cols or 'NONE'}")
-    print(f"  date columns      : {date_cols}")
+    print(f"  eGFR-like columns : {_preview(egfr_cols) if egfr_cols else 'NONE'}")
+    print(f"  date columns      : {_preview(date_cols)}")
 
     if "death_date" in df.columns:
         dd = pd.to_datetime(df["death_date"], errors="coerce")
