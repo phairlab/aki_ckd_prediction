@@ -114,6 +114,12 @@ def parse_args():
                    help="Override the outcome for all experiments")
     p.add_argument("--skip-shap", action="store_true",
                    help="Skip out-of-fold SHAP (the slowest per-fold step)")
+    p.add_argument("--no-cache", action="store_true",
+                   help="Recompute the scored cohort for every experiment "
+                        "instead of caching it between them")
+    p.add_argument("--refresh-cache", action="store_true",
+                   help="Delete any cached cohort first, then recompute and "
+                        "cache it once")
     p.add_argument("--albuminuria-upcr", action="store_true",
                    help="NOT FOR THE RESUBMISSION. Allows urine "
                         "protein:creatinine as a last-resort albuminuria "
@@ -403,6 +409,12 @@ def main():
 
     if args.albuminuria_upcr:
         config.ALBUMINURIA_INCLUDE_UPCR = True
+
+    if args.no_cache:
+        config.USE_COHORT_CACHE = False
+    if args.refresh_cache:
+        from src.data_preprocessing import clear_cohort_cache
+        clear_cohort_cache()
 
     from src import parallel
     devices = parallel.resolve_devices(args.gpus)

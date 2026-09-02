@@ -137,6 +137,20 @@ NORMALIZE_LAB_NAMES = True
 # feature. Set False to reproduce that behaviour.
 COUNT_ANY_RESULT = True
 
+# Cache the scored cohort between experiments.
+#
+# Computing the James score components dominates preprocessing: the three
+# get_*_creatinine / get_albuminuria_status helpers each run per patient via
+# DataFrame.apply, and each call filters the full 710,000-row lab table -- about
+# a minute and a half for 4,694 patients. That was repeated once per experiment,
+# seven times per run, for an identical result.
+#
+# The cache key fingerprints features.csv, both lab files, the
+# ALBUMINURIA_INCLUDE_UPCR setting and a hash of james_score_helpers.py itself,
+# so editing the scoring logic invalidates it automatically. Cached frames live
+# in .cache/ and are safe to delete. --no-cache or --refresh-cache override.
+USE_COHORT_CACHE = True
+
 # Albuminuria component: include urine protein:creatinine as a last-resort
 # fallback when neither ACR nor dipstick is available.
 #

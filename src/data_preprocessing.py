@@ -171,29 +171,94 @@ class FoldImputer:
 
 
 # ---------------------------------------------------------------------------
-# Main preprocessing entry point
+# Cohort cache
 # ---------------------------------------------------------------------------
+# Computing the James score components is the slowest part of preprocessing by
+# a wide margin: get_baseline_creatinine, get_discharge_creatinine and
+# get_albuminuria_status each run per patient via DataFrame.apply, and each call
+# filters the full 710,000-row lab table. That is ~1.5 minutes for 4,694
+# patients -- and it was being repeated for every experiment, seven times per
+# run, for an identical result.
+#
+# The scored cohort depends only on the input files and the scoring logic, never
+# on which model or feature set is being fitted, so it is cached.
+#
+# The key includes a hash of james_score_helpers.py itself, so editing the
+# scoring logic invalidates the cache automatically rather than relying on
+# anyone remembering to bump a version number.
 
-def preprocess_data(exp_config, cohort_log=None, verbose=True):
-    """Preprocess data for a single experiment.
+CACHE_SUBDIR = ".cache"
 
-    Returns a dict with:
-        features        (n_patients, n_features) float array, NaN PRESERVED
-        labels          (n_patients,) int array
-        feature_names   array of column names
-        patient_ids     array of patient identifiers, aligned to rows
-        features_df     the full DataFrame (population tables, subgroups, UMAP)
-        imputation_plan {column_index: 'zero'|'median'} for FoldImputer
-        cohort_log      CohortLog instance
-        missingness     per-column missing fraction (reported, not acted on)
+
+def _cache_dir():
+    path = os.path.join(config.PROJECT_ROOT, CACHE_SUBDIR)
+    os.makedirs(path, exist_ok=True)
+    return path
+
+
+def cohort_cache_key():
+    """Fingerprint of every input the scored cohort depends on."""
+    import hashlib
+
+    parts = []
+    for path in [config.get_features_path(), *config.get_labs_paths()]:
+        if path and os.path.exists(path):
+            stat = os.stat(path)
+            parts.append(f"{os.path.basename(path)}:{stat.st_size}:{int(stat.st_mtime)}")
+        else:
+            parts.append(f"{path}:missing")
+
+    helper = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                          "james_score_helpers.py")
+    if os.path.exists(helper):
+        with open(helper, "rb") as f:
+            parts.append("logic:" + hashlib.sha256(f.read()).hexdigest()[:16])
+
+    parts.append(f"upcr:{getattr(config, 'ALBUMINURIA_INCLUDE_UPCR', False)}")
+    parts.append("schema:2")          # bump if the cached frame's shape changes
+
+    return hashlib.sha256("|".join(parts).encode()).hexdigest()[:24]
+
+
+def clear_cohort_cache():
+    """Delete every cached cohort. Returns the number of files removed."""
+    import glob as _glob
+
+    removed = 0
+    for path in _glob.glob(os.path.join(_cache_dir(), "cohort_*.pkl")):
+        os.remove(path)
+        removed += 1
+    print(f"[Cache] Removed {removed} cached cohort file(s) from {_cache_dir()}")
+    return removed
+def build_scored_cohort(cohort_log=None, verbose=True, use_cache=True):
+    """Load the cohort, filter it, and compute the James score components.
+
+    The expensive, experiment-INDEPENDENT half of preprocessing, split out so
+    it can be cached. Returns (features_df, CohortLog).
     """
-    feature_set = exp_config.feature_set
-    target = exp_config.target
-    log = cohort_log or CohortLog()
+    import pickle
 
-    # ------------------------------------------------------------------
-    # Load
-    # ------------------------------------------------------------------
+    log = cohort_log or CohortLog()
+    key = cohort_cache_key()
+    cache_path = os.path.join(_cache_dir(), f"cohort_{key}.pkl")
+
+    if use_cache and os.path.exists(cache_path):
+        with open(cache_path, "rb") as f:
+            payload = pickle.load(f)
+        log.steps = payload["log_steps"]
+        if verbose:
+            print(f"[Cache] HIT cohort_{key}.pkl "
+                  f"({os.path.getsize(cache_path) / 1e6:.1f} MB) — skipping the "
+                  f"James score recomputation")
+            for step in log.steps:
+                print(f"[Cohort] {step['description']} -> "
+                      f"{step['n_remaining']} patients remaining")
+        return payload["features_df"], log
+
+    if verbose and use_cache:
+        print("[Cache] MISS — computing the scored cohort "
+              "(the James score components take a minute or two)")
+
     features_df = pd.read_csv(config.get_features_path())
     log.record("Loaded features.csv", features_df)
 
@@ -206,8 +271,11 @@ def preprocess_data(exp_config, cohort_log=None, verbose=True):
     )
     log.record("Dropped patients who died before discharge", features_df)
 
-    # Derived time features for the expanded set
-    if feature_set == "expanded":
+    # Derived time features. Computed unconditionally: they are cheap, and
+    # making them conditional on the feature set would make the cached cohort
+    # experiment-specific for no benefit. Feature sets that do not list them
+    # simply ignore them.
+    if True:
         features_df["length_of_stay"] = (
             features_df["discharge_date"] - features_df["admit_date"]
         ).dt.days
@@ -332,6 +400,44 @@ def preprocess_data(exp_config, cohort_log=None, verbose=True):
     # they are safe to apply before the CV split -- unlike the median fills,
     # which are now handled per fold by FoldImputer.
     features_df = _apply_rowwise_stage_fills(features_df)
+
+    if use_cache:
+        with open(cache_path, "wb") as f:
+            pickle.dump({"features_df": features_df, "log_steps": log.steps},
+                        f, protocol=4)
+        if verbose:
+            print(f"[Cache] Wrote cohort_{key}.pkl "
+                  f"({os.path.getsize(cache_path) / 1e6:.1f} MB); the remaining "
+                  f"experiments in this run reuse it")
+
+    return features_df, log
+
+
+
+
+# ---------------------------------------------------------------------------
+# Main preprocessing entry point
+# ---------------------------------------------------------------------------
+
+def preprocess_data(exp_config, cohort_log=None, verbose=True):
+    """Preprocess data for a single experiment.
+
+    Returns a dict with:
+        features        (n_patients, n_features) float array, NaN PRESERVED
+        labels          (n_patients,) int array
+        feature_names   array of column names
+        patient_ids     array of patient identifiers, aligned to rows
+        features_df     the full DataFrame (population tables, subgroups, UMAP)
+        imputation_plan {column_index: 'zero'|'median'} for FoldImputer
+        cohort_log      CohortLog instance
+        missingness     per-column missing fraction (reported, not acted on)
+    """
+    feature_set = exp_config.feature_set
+    target = exp_config.target
+    features_df, log = build_scored_cohort(
+        cohort_log, verbose=verbose,
+        use_cache=getattr(config, "USE_COHORT_CACHE", True))
+
 
     # ------------------------------------------------------------------
     # Feature selection for this experiment
