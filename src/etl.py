@@ -18,7 +18,7 @@ import sys
 sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import config
-from lab_normalization import (add_canonical_name, add_unit_aware_entity,
+from lab_normalization import (add_canonical_name, harmonise_units,
                                write_lab_normalization_report)
 
 
@@ -135,13 +135,14 @@ def _prepare_labs(labs_df, top_n, source_label):
         # Split any entity whose spellings disagree on units. Merging umol/L
         # with mmol/L, or a 24-hour excretion with a spot concentration, would
         # average incompatible scales into one crosstab cell.
-        labs_df, mixed = add_unit_aware_entity(labs_df)
+        labs_df, unit_report = harmonise_units(labs_df)
         name_col = "canonical_test_unit"
         n_raw = labs_df["TEST_NM"].nunique()
         n_entities = labs_df[name_col].nunique()
+        n_split = len(unit_report["split"])
         print(f"[ETL] {source_label}: {n_raw} raw test names -> "
               f"{n_entities} clinical entities"
-              + (f" ({len(mixed)} split by unit)" if mixed else ""))
+              + (f" ({n_split} split by unit)" if n_split else ""))
     else:
         labs_df = labs_df.copy()
         labs_df["canonical_test"] = labs_df["TEST_NM"].apply(test_name)
@@ -153,14 +154,26 @@ def _prepare_labs(labs_df, top_n, source_label):
     top = list(labs_df[name_col].value_counts().index)[:top_n]
     labs_df = labs_df[labs_df[name_col].isin(top)]
 
-    numeric = labs_df["TEST_RSLT"].astype(str).apply(
-        lambda x: x.replace(".", "", 1).replace("-", "", 1).isnumeric())
-    labs_df = labs_df[numeric]
+    # Numeric filter via pd.to_numeric rather than the original string test.
+    #
+    # The original was
+    #     x.replace(".", "", 1).replace("-", "", 1).isnumeric()
+    # which rejects anything str() renders in scientific notation. That was
+    # harmless while TEST_RSLT held raw strings, but harmonise_units now writes
+    # converted floats back into it, and a converted value can be small enough
+    # that str() gives "1e-05" -- silently dropping a valid measurement.
+    numeric = pd.to_numeric(labs_df["TEST_RSLT"], errors="coerce")
+    n_before = len(labs_df)
+    labs_df = labs_df[numeric.notna()].copy()
+    labs_df["result"] = numeric[numeric.notna()]
+    n_dropped = n_before - len(labs_df)
+    if n_dropped:
+        print(f"[ETL] {source_label}: dropped {n_dropped:,} row(s) with a "
+              f"non-numeric result")
 
     labs_df["patient_id"] = labs_df["id"]
     labs_df["test_date"] = pd.to_datetime(labs_df["test_date"], errors="coerce")
     labs_df["name"] = labs_df[name_col]
-    labs_df["result"] = labs_df["TEST_RSLT"].astype(float)
     return labs_df
 
 

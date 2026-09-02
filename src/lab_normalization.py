@@ -366,6 +366,111 @@ def add_unit_aware_entity(labs_df, name_col="TEST_NM", unit_col="TEST_UOFM",
     return df, mixed
 
 
+# ---------------------------------------------------------------------------
+# Unit harmonisation
+# ---------------------------------------------------------------------------
+# Splitting an entity by unit is safe but blunt: on the real extract it created
+# 28 extra columns holding between 1 and 7 rows each. Where a conversion factor
+# exists, converting is strictly better -- the measurement is kept and the
+# column stays whole.
+#
+# Every factor below converts INTO the canonical unit and covers only units
+# actually observed in this extract. Nothing is invented: an unrecognised unit
+# for a listed entity is dropped and counted, never assumed.
+#
+#   entity -> (canonical unit, {unit: multiply by})
+
+LAB_UNIT_CONVERSIONS = {
+    # 1 mg/dL = 88.4 umol/L; 1 mmol/L = 1000 umol/L
+    "creatinine": ("umol/l", {"umol/l": 1.0, "mmol/l": 1000.0, "mg/dl": 88.4}),
+    # g(Hb)/dL and g/dL are the same thing; 1 g/dL = 10 g/L
+    "hemoglobin": ("g/l", {"g/l": 1.0, "g/dl": 10.0, "g(hb)/dl": 10.0}),
+    # 1 g/mmol = 1000 mg/mmol; 1 mg/mg = 1 g/g = 1000 mg/g = 1000/8.84 mg/mmol
+    "protein_creatinine_ratio": ("mg/mmol", {"mg/mmol": 1.0, "g/mmol": 1000.0,
+                                             "mg/mg": 1000.0 / 8.84,
+                                             "mg/g": 1.0 / 8.84}),
+    "albumin_creatinine_ratio": ("mg/mmol", {"mg/mmol": 1.0, "mg/g": 1.0 / 8.84}),
+    # 1 mg/dL urate = 59.48 umol/L
+    "urate": ("umol/l", {"umol/l": 1.0, "mg/dl": 59.48}),
+    # 1 mg/dL glucose = 1/18.016 mmol/L
+    "glucose": ("mmol/l", {"mmol/l": 1.0, "mg/dl": 1.0 / 18.016}),
+    "bicarbonate": ("mmol/l", {"mmol/l": 1.0, "meq/l": 1.0}),
+    "albumin": ("g/l", {"g/l": 1.0, "g/dl": 10.0}),
+}
+
+# Entities whose differing units measure DIFFERENT QUANTITIES, where no factor
+# exists and splitting is the only correct answer. urate_urine appears as both
+# mmol/d (24-hour excretion) and mmol/L (spot concentration).
+NEVER_CONVERT = {"urate_urine", "creatinine_urine", "protein_urine",
+                 "albumin_urine", "glucose_urine"}
+
+
+def harmonise_units(labs_df, entity_col="canonical_test",
+                    unit_col="TEST_UOFM", value_col="TEST_RSLT",
+                    out_entity_col="canonical_test_unit", verbose=True):
+    """Convert to a canonical unit per entity; split or drop when we cannot.
+
+    Three outcomes per entity:
+      * listed in LAB_UNIT_CONVERSIONS -- values converted into the canonical
+        unit, and rows whose unit is not in its table are DROPPED and counted
+      * listed in NEVER_CONVERT, or unlisted with several units -- SPLIT, with
+        the unit appended to the entity name
+      * unlisted with a single unit -- untouched
+
+    Returns (dataframe, report).
+    """
+    df = labs_df.copy()
+    df["__unit_clean"] = df[unit_col].map(_clean)
+    df["__value"] = pd.to_numeric(df[value_col], errors="coerce")
+    df[out_entity_col] = df[entity_col]
+
+    report = {"converted": {}, "dropped": {}, "split": {}}
+    drop_mask = pd.Series(False, index=df.index)
+
+    for entity, group in df.groupby(entity_col):
+        units = sorted(set(group["__unit_clean"]) - {""}) +                 (["<none>"] if (group["__unit_clean"] == "").any() else [])
+
+        if entity in LAB_UNIT_CONVERSIONS and entity not in NEVER_CONVERT:
+            canonical, factors = LAB_UNIT_CONVERSIONS[entity]
+            for unit in set(group["__unit_clean"]):
+                rows = group.index[group["__unit_clean"] == unit]
+                factor = factors.get(unit)
+                if factor is None:
+                    drop_mask.loc[rows] = True
+                    report["dropped"].setdefault(entity, {})[unit or "<none>"] = len(rows)
+                elif factor != 1.0:
+                    df.loc[rows, "__value"] = df.loc[rows, "__value"] * factor
+                    report["converted"].setdefault(entity, {})[unit] = len(rows)
+            continue
+
+        if len(units) > 1:
+            for unit in set(group["__unit_clean"]):
+                rows = group.index[group["__unit_clean"] == unit]
+                df.loc[rows, out_entity_col] = f"{entity}__{unit_slug(unit)}"
+            report["split"][entity] = units
+
+    if drop_mask.any():
+        df = df[~drop_mask]
+
+    df[value_col] = df["__value"]
+    df = df.drop(columns=["__unit_clean", "__value"])
+
+    if verbose:
+        for entity, units in report["converted"].items():
+            canonical = LAB_UNIT_CONVERSIONS[entity][0]
+            detail = ", ".join(f"{u}={n:,}" for u, n in units.items())
+            print(f"[LabNorm] {entity}: converted {detail} -> {canonical}")
+        for entity, units in report["dropped"].items():
+            detail = ", ".join(f"{u}={n:,}" for u, n in units.items())
+            print(f"[LabNorm] {entity}: DROPPED {detail} "
+                  f"(unit not interpretable for this analyte)")
+        for entity, units in report["split"].items():
+            print(f"[LabNorm] {entity}: SPLIT across {units} "
+                  f"(different quantities, no conversion exists)")
+
+    return df, report
+
+
 def audit_lab_names(labs_df: pd.DataFrame,
                     name_col: str = "TEST_NM",
                     category_col: str = "lab_test_category",
