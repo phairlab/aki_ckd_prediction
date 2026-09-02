@@ -55,6 +55,13 @@ PROTECTED_RULES: tuple[tuple[str, str], ...] = (
     (r"creatinine.*urine|urine.*creatinine",           "creatinine_urine"),
     (r"creatinine\s*clearance",                        "creatinine_clearance"),
     (r"dipstick|urinalysis|\bua\b",                    "urine_dipstick"),
+
+    # Any other analyte measured on urine. Found in the real extract as
+    # "EXT Glucose, Ur", which was being folded into blood glucose -- a urine
+    # glucose is a different measurement on a different scale and does not
+    # belong in the same feature column. ", Ur" and ", Urine" are the two
+    # suffixes the warehouse uses.
+    (r"(^|[\s,(])ur(ine)?([\s,)]|$)",                  "URINE_SPECIMEN"),
 )
 
 
@@ -85,6 +92,11 @@ CANONICAL_RULES: tuple[tuple[str, str], ...] = (
     # --- inflammatory / cardiac ------------------------------------------
     # These precede the generic protein rule below: "C-Reactive Protein"
     # would otherwise be swallowed by /protein/.
+    # High-sensitivity CRP before the general rule. They are different assays
+    # with different dynamic ranges (hs-CRP is calibrated for cardiovascular
+    # risk at 0-10 mg/L; standard CRP reports well past 300), so averaging them
+    # into one column produces a number that is neither.
+    (r"high\s*sensitivit|\bhs[\s-]*crp\b",             "crp_high_sensitivity"),
     (r"c[\s-]*reactive|\bcrp\b",                      "crp"),
     (r"procalcitonin",                                 "procalcitonin"),
     (r"troponin",                                      "troponin"),
@@ -168,6 +180,17 @@ def _slug(text: str) -> str:
     return out or "unmapped"
 
 
+def _base_entity(raw):
+    """Canonical analyte for a name, ignoring the protected-specimen rules."""
+    for pattern, entity in CANONICAL_RULES:
+        if re.search(pattern, raw):
+            return entity
+    for pattern, entity in ABBREVIATION_RULES:
+        if re.search(pattern, raw):
+            return entity
+    return None
+
+
 def normalize_test_name(test_nm: object,
                         lab_test_category: object = None,
                         use_category: bool = True) -> str:
@@ -199,7 +222,12 @@ def normalize_test_name(test_nm: object,
     # James score inputs as well as the expanded feature set.
     for pattern, entity in PROTECTED_RULES:
         if re.search(pattern, raw):
-            return entity
+            if entity != "URINE_SPECIMEN":
+                return entity
+            # A urine specimen of some other analyte: resolve the analyte, then
+            # keep it separate from its blood counterpart.
+            base = _base_entity(raw)
+            return f"{base}_urine" if base else "urine_other"
 
     if use_category:
         cat = _clean(lab_test_category)
@@ -383,6 +411,22 @@ SELF_TEST_CASES: tuple[tuple[str, str], ...] = (
     ("HbA1c", "hba1c"),
     ("Albumin", "albumin"),
     ("dipstick UA", "urine_dipstick"),
+    # Cases found in the real AHS extract, 2026-09-01
+    ("EXT Glucose, Ur", "glucose_urine"),
+    ("Glucose, Bld", "glucose"),
+    ("EXT Glucose-Random-mmol/L", "glucose"),
+    ("GLUCOSE RANDOM", "glucose"),
+    ("C Reactive Protein High Sensitivity", "crp_high_sensitivity"),
+    ("C Reactive Protein Quantitative", "crp"),
+    ("Creatinine Serum", "creatinine"),
+    ("EXT Creatinine", "creatinine"),
+    ("ALBUMIN/CREATININE RATIO,URINE", "albumin_creatinine_ratio"),
+    ("Albumin Creatinine Ratio", "albumin_creatinine_ratio"),
+    ("Protein/Creatinine Ratio Conc, Urine", "protein_creatinine_ratio"),
+    ("Phosphorus", "phosphate"),
+    ("HCO3,VENOUS", "bicarbonate"),
+    ("GFR ESTIMATED", "egfr"),
+    ("EXT Hemoglobin (Hgb)-g/L", "hemoglobin"),
 )
 
 
