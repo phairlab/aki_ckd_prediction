@@ -162,7 +162,53 @@ def _prepare_labs(labs_df, top_n, source_label):
 # Main ETL function
 # ---------------------------------------------------------------------------
 
-def _backup_existing(out_dir, filenames=("features.csv", "cohort.csv")):
+# Every file run_etl() writes. Kept as one list so the backup cannot drift out
+# of step with the writes -- an earlier version protected only two of the ten.
+ETL_OUTPUT_FILES = (
+    "features.csv",
+    "cohort.csv",
+    "index_vars.csv",
+    "index_records_crosstab.csv",
+    "index_consultations_crosstab.csv",
+    "index_labs_crosstab.csv",
+    "pre_vars.csv",
+    "pre_labs_crosstab.csv",
+    "pre_bmi_crosstab.csv",
+    "pre_medication.csv",
+)
+
+
+def preflight_report(raw_dir, out_dir):
+    """Print exactly what will be read and what will be overwritten.
+
+    Printed before anything is touched. The ETL reads one directory and writes
+    another, and on this server the two have historically been confused -- the
+    raw directory contains a full set of ETL outputs from some earlier run --
+    so it is worth showing the paths and what is already sitting in them.
+    """
+    print(f"\n  READ FROM (never modified) : {raw_dir}")
+    print(f"  WRITE TO                   : {out_dir}")
+
+    existing = []
+    for name in ETL_OUTPUT_FILES:
+        path = os.path.join(out_dir, name)
+        if os.path.exists(path):
+            stat = os.stat(path)
+            existing.append((name, stat.st_size / 1e6,
+                             pd.Timestamp(stat.st_mtime, unit="s")))
+
+    if not existing:
+        print(f"  Nothing to overwrite: none of the {len(ETL_OUTPUT_FILES)} output "
+              f"files exist there yet.")
+        return
+
+    print(f"\n  {len(existing)} existing file(s) WILL BE OVERWRITTEN "
+          f"(all are backed up first):")
+    for name, size_mb, mtime in existing:
+        print(f"    {name:<34s} {size_mb:>8,.1f} MB   modified {mtime:%Y-%m-%d %H:%M}")
+
+
+def _backup_existing(out_dir, filenames=ETL_OUTPUT_FILES):
     """Copy any existing ETL outputs aside before overwriting them.
 
     The ETL rewrites features.csv in place. On the server that file is the one
@@ -205,10 +251,10 @@ def run_etl():
     out_dir = config.get_etl_output_dir()
     os.makedirs(out_dir, exist_ok=True)
 
-    print(f"[ETL] Reading from: {raw_dir}")
-    print(f"[ETL] Writing to: {out_dir}")
-
+    print(f"\n{'-' * 70}\n[ETL] Pre-flight\n{'-' * 70}")
+    preflight_report(raw_dir, out_dir)
     _backup_existing(out_dir)
+    print(f"{'-' * 70}\n")
 
     # ---- 1. Cohort ----
     cohort = pd.read_csv(os.path.join(raw_dir, "cohort and outcome.csv"))
