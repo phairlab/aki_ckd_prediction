@@ -100,6 +100,7 @@ def read_experiment(path):
         "tuned": bool(args.get("tune")),
         "observed_trials": args.get("n_trials") or 0,
         "inner_folds": args.get("inner_folds"),
+        "observed_epochs": args.get("epochs"),
         "n_folds": n_folds,
         "mean_tuning_sec": mean_tuning_sec,
         "mean_other_sec": other_sec,
@@ -119,8 +120,23 @@ def project(rows, target_profile, workers, n_folds=None):
         key = "tf_trials" if r["model_type"] == "transformer" else "xgb_trials"
         target_trials = profile[key]
 
+        # Scale by EVERY knob the profile changes, not just trials. `deep`
+        # also raises the transformer's inner folds (3 -> 5) and the epoch cap
+        # (100 -> 150), so scaling on trials alone under-predicted it badly.
         if r["tuned"] and r["observed_trials"]:
             scale = target_trials / r["observed_trials"]
+
+            inner_key = "tf_inner" if r["model_type"] == "transformer" else "xgb_inner"
+            if r.get("inner_folds"):
+                scale *= profile[inner_key] / r["inner_folds"]
+
+            # Epochs are an upper bound, not a cost: early stopping with
+            # patience 10 usually fires first, so a higher cap rarely costs the
+            # full ratio. Half the nominal increase is applied.
+            if r["model_type"] == "transformer" and r.get("observed_epochs"):
+                epoch_ratio = profile["epochs"] / r["observed_epochs"]
+                if epoch_ratio > 1:
+                    scale *= 1 + (epoch_ratio - 1) * 0.5
         else:
             scale = 1.0
         tuning = r["mean_tuning_sec"] * scale
