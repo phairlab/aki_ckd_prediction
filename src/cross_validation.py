@@ -529,9 +529,14 @@ def run_cross_validation(exp_config, data, devices=None, sequential=False,
     print(f"Model      : {exp_config.model_type}   Features: {exp_config.feature_set}")
     print(f"Samples    : {features.shape[0]}   Input features: {features.shape[1]}")
     print(f"Events     : {int(labels.sum())} ({labels.mean() * 100:.1f}%)")
-    print(f"Tuning     : {'ON — ' + str(exp['n_trials']) + ' trials/fold, '
-                          + str(exp['inner_folds']) + ' inner folds'
-                          if exp['tune'] else 'OFF (submitted defaults)'}")
+    # Built outside the f-string: an expression spanning several lines inside
+    # one is Python 3.12+ syntax (PEP 701), and the analysis server runs 3.8.
+    if exp["tune"]:
+        tuning_line = (f"ON - {exp['n_trials']} trials/fold, "
+                       f"{exp['inner_folds']} inner folds")
+    else:
+        tuning_line = "OFF (reproducing the submitted defaults)"
+    print(f"Tuning     : {tuning_line}")
     print(f"Output     : {output_dir}")
     print(f"{'=' * 70}")
 
