@@ -18,7 +18,8 @@ import sys
 sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import config
-from lab_normalization import add_canonical_name, write_lab_normalization_report
+from lab_normalization import (add_canonical_name, add_unit_aware_entity,
+                               write_lab_normalization_report)
 
 
 # ---------------------------------------------------------------------------
@@ -131,11 +132,16 @@ def _prepare_labs(labs_df, top_n, source_label):
     """
     if config.NORMALIZE_LAB_NAMES:
         labs_df = add_canonical_name(labs_df)
-        name_col = "canonical_test"
+        # Split any entity whose spellings disagree on units. Merging umol/L
+        # with mmol/L, or a 24-hour excretion with a spot concentration, would
+        # average incompatible scales into one crosstab cell.
+        labs_df, mixed = add_unit_aware_entity(labs_df)
+        name_col = "canonical_test_unit"
         n_raw = labs_df["TEST_NM"].nunique()
         n_entities = labs_df[name_col].nunique()
         print(f"[ETL] {source_label}: {n_raw} raw test names -> "
-              f"{n_entities} clinical entities")
+              f"{n_entities} clinical entities"
+              + (f" ({len(mixed)} split by unit)" if mixed else ""))
     else:
         labs_df = labs_df.copy()
         labs_df["canonical_test"] = labs_df["TEST_NM"].apply(test_name)

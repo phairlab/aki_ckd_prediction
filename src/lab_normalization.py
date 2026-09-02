@@ -291,6 +291,81 @@ def add_canonical_name(labs_df: pd.DataFrame,
     return df
 
 
+# ---------------------------------------------------------------------------
+# Unit consistency within an entity
+# ---------------------------------------------------------------------------
+# Collapsing name variants into one entity is only safe when they share a unit.
+# The real extract contains two counter-examples, both small but both wrong to
+# merge:
+#
+#   creatinine    34,770 rows in umol/L and 2 in mmol/L -- same quantity, but a
+#                 1000x scale difference, and _prepare_labs does no conversion
+#   urate_urine   mmol/d (24-hour excretion) and mmol/L (spot concentration) --
+#                 not the same quantity at all, so no factor exists
+#
+# Before normalization each spelling had its own column, so nothing mixed; the
+# merge is what introduced the hazard. Rather than build a conversion table for
+# every analyte, an entity whose members disagree on units is SPLIT by unit.
+# That costs a few sparse columns, which feature selection will ignore, and it
+# cannot silently average incompatible scales.
+
+def unit_slug(unit):
+    """Stable, filename-safe token for a unit string."""
+    text = _clean(unit)
+    if not text:
+        return "nounit"
+    return re.sub(r"[^a-z0-9]+", "_", text).strip("_") or "nounit"
+
+
+def entity_unit_consistency(labs_df, name_col="TEST_NM",
+                            unit_col="TEST_UOFM",
+                            entity_col="canonical_test"):
+    """Report which entities span more than one unit.
+
+    Returns {entity: [unit, ...]} for entities with more than one distinct unit.
+    """
+    if unit_col not in labs_df.columns or entity_col not in labs_df.columns:
+        return {}
+    grouped = (labs_df.groupby(entity_col)[unit_col]
+               .agg(lambda s: sorted({_clean(v) for v in s.dropna()} - {""})))
+    return {entity: units for entity, units in grouped.items() if len(units) > 1}
+
+
+def add_unit_aware_entity(labs_df, name_col="TEST_NM", unit_col="TEST_UOFM",
+                          entity_col="canonical_test",
+                          out_col="canonical_test_unit", verbose=True):
+    """Attach an entity name that is split by unit only where units disagree.
+
+    An entity reported in a single unit keeps its plain name, so the common
+    case stays readable. One reported in several gets a suffix per unit.
+    """
+    df = labs_df.copy()
+    mixed = entity_unit_consistency(df, name_col, unit_col, entity_col)
+
+    if not mixed:
+        df[out_col] = df[entity_col]
+        return df, {}
+
+    if verbose:
+        noun = "entity spans" if len(mixed) == 1 else "entities span"
+        print(f"[LabNorm] {len(mixed)} {noun} more than one unit and will be "
+              f"SPLIT rather than averaged:")
+        for entity, units in mixed.items():
+            counts = (df.loc[df[entity_col] == entity, unit_col]
+                      .fillna("").map(_clean).value_counts())
+            detail = ", ".join(f"{u or 'nounit'}={n:,}" for u, n in counts.items())
+            print(f"    {entity:<28s} {detail}")
+
+    def label(row):
+        entity = row[entity_col]
+        if entity not in mixed:
+            return entity
+        return f"{entity}__{unit_slug(row[unit_col])}"
+
+    df[out_col] = df.apply(label, axis=1)
+    return df, mixed
+
+
 def audit_lab_names(labs_df: pd.DataFrame,
                     name_col: str = "TEST_NM",
                     category_col: str = "lab_test_category",
