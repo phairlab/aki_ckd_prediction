@@ -89,6 +89,46 @@ def audit_albuminuria(labs, output_dir):
     print(f"  ACR rows the filter MISSES               : {len(missed):,}")
     print(f"  non-ACR rows the filter wrongly catches  : {len(extra):,}")
 
+    if len(extra):
+        # These carry an ACR category but are a different assay by name. They
+        # matter because get_median_acr_category() takes the MEDIAN across
+        # every row the category filter returns, so a contaminant on a
+        # different scale moves the median and can flip a patient's
+        # albuminuria band. The ACR thresholds are 3.39 and 33.9 mg/mmol;
+        # serum albumin runs 30-50 g/L, which would read as "heavy".
+        n_pat = extra["id"].nunique() if "id" in extra.columns else "?"
+        print(f"\n  CONTAMINANTS: {len(extra):,} row(s) across {n_pat} patient(s) "
+              f"carry an ACR category but are not an ACR by name:")
+        summary = (extra.groupby(["TEST_NM", "canonical_test", "TEST_UOFM"],
+                                 dropna=False)
+                   .agg(n_rows=("TEST_NM", "size"))
+                   .reset_index().sort_values("n_rows", ascending=False))
+        for _, r in summary.iterrows():
+            print(f"    {r['n_rows']:>7,}  TEST_NM={r['TEST_NM']!r}  "
+                  f"-> {r['canonical_test']}  unit={r['TEST_UOFM']!r}")
+
+        numeric = pd.to_numeric(extra["TEST_RSLT"], errors="coerce").dropna()
+        acr_numeric = pd.to_numeric(
+            labs.loc[is_acr, "TEST_RSLT"], errors="coerce").dropna()
+        if len(numeric) and len(acr_numeric):
+            print(f"\n  value distributions (ACR bands are 3.39 and 33.9 mg/mmol):")
+            for label, s in (("true ACR", acr_numeric), ("contaminants", numeric)):
+                print(f"    {label:<14s} n={len(s):>6,}  median={s.median():>9.2f}  "
+                      f"IQR {s.quantile(.25):>8.2f}-{s.quantile(.75):<8.2f}  "
+                      f"max={s.max():>10.2f}")
+            share_heavy = float((numeric > 33.9).mean())
+            print(f"\n    {share_heavy * 100:.1f}% of contaminant values exceed 33.9, "
+                  f"the 'heavy albuminuria'\n    threshold worth 3 James points.")
+            if share_heavy > 0.05:
+                print("    That is high enough to change albuminuria bands. Restrict the")
+                print("    ACR selection to canonical_test == 'albumin_creatinine_ratio'")
+                print("    and re-check Table 3's albuminuria distribution.")
+            else:
+                print("    Low enough that the median is unlikely to shift a band, but")
+                print("    confirm against the per-patient counts before relying on it.")
+        summary.to_csv(os.path.join(output_dir, "james_audit_acr_contaminants.csv"),
+                       index=False)
+
     if len(missed):
         n_pat = missed["id"].nunique() if "id" in missed.columns else "?"
         print(f"\n  MISSED ACR results affect {n_pat} patient(s). By name/category:")
@@ -205,6 +245,7 @@ def main():
 
     print(f"\n{'=' * 74}\nSUMMARY\n{'=' * 74}")
     clean = (result["acr_missed_rows"] == 0
+             and result["acr_extra_rows"] == 0
              and result["creatinine_contaminant_rows"] == 0)
     if clean:
         print("  Both selections are clean. The submitted James scores stand, and")
