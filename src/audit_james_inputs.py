@@ -453,9 +453,73 @@ def audit_upcr_availability(labs, output_dir):
             print("  Keep the published definition as primary -- it is what preserves")
             print("  comparability with James et al. and the Grampian validation --")
             print("  and report the uPCR-augmented version alongside it.")
-        pd.DataFrame({"patient_id": sorted(rescuable)}).to_csv(
-            os.path.join(output_dir, "james_audit_unmeasured_with_upcr.csv"),
-            index=False)
+        # Where would those patients actually land? Predicting this from the ACR
+        # distribution is not good enough: a uPCR is ordered BECAUSE proteinuria
+        # is suspected, so the tested group is enriched and the median may sit
+        # well above the normal threshold.
+        from james_score_helpers import (
+            pcr_to_mg_mmol, PCR_NORMAL_THRESHOLD_MG_MMOL,
+            PCR_HEAVY_THRESHOLD_MG_MMOL)
+
+        pcr_rows = win[(win["canonical_test"] == "protein_creatinine_ratio")
+                       & (win["id"].isin(rescuable))].copy()
+        pcr_rows["__mg_mmol"] = [
+            pcr_to_mg_mmol(v, u)
+            for v, u in zip(pcr_rows["TEST_RSLT"], pcr_rows["TEST_UOFM"])]
+        usable = pcr_rows.dropna(subset=["__mg_mmol"])
+
+        per_patient = usable.groupby("id")["__mg_mmol"].median()
+        n_unusable = len(rescuable) - len(per_patient)
+
+        def band(v):
+            if v < PCR_NORMAL_THRESHOLD_MG_MMOL:
+                return "normal"
+            if v <= PCR_HEAVY_THRESHOLD_MG_MMOL:
+                return "mild"
+            return "heavy"
+
+        bands = per_patient.map(band)
+        points = {"normal": 0, "mild": 1, "heavy": 3}
+
+        print(f"\n  Where those patients would land (median uPCR per patient):")
+        if len(per_patient):
+            print(f"    median of medians : {per_patient.median():.2f} mg/mmol")
+            print(f"    IQR               : {per_patient.quantile(.25):.2f} - "
+                  f"{per_patient.quantile(.75):.2f}")
+            print(f"    thresholds        : normal < "
+                  f"{PCR_NORMAL_THRESHOLD_MG_MMOL:g}, heavy > "
+                  f"{PCR_HEAVY_THRESHOLD_MG_MMOL:g} mg/mmol")
+            print(f"\n    {'band':<8s} {'n':>6s} {'%':>7s}  points  "
+                  f"James score change")
+            for b in ("normal", "mild", "heavy"):
+                n = int((bands == b).sum())
+                delta = points[b] - 1     # 'unmeasured' is worth 1 point
+                arrow = f"{delta:+d}" if delta else " 0 (no change)"
+                print(f"    {b:<8s} {n:>6,} {n / len(bands) * 100:>6.1f}%  "
+                      f"{points[b]:>6d}  {arrow}")
+            if n_unusable:
+                print(f"    {'(unusable units)':<8s} {n_unusable:>6,}")
+
+            n_changed = int((bands != "mild").sum())
+            print(f"\n    {n_changed:,} of {len(rescuable):,} would actually change "
+                  f"score; the rest land in\n    'mild', which carries the same 1 point "
+                  f"as 'unmeasured'.")
+            net = float((bands.map(points) - 1).mean())
+            print(f"    mean James score change across the 229: {net:+.2f} points")
+        else:
+            print("    none had a usable uPCR value after unit conversion")
+
+        out = pd.DataFrame({"patient_id": per_patient.index,
+                            "median_upcr_mg_mmol": per_patient.values,
+                            "would_be_band": bands.values})
+        out["james_points_change"] = out["would_be_band"].map(points) - 1
+        out.to_csv(os.path.join(output_dir,
+                                "james_audit_unmeasured_with_upcr.csv"), index=False)
+        result["upcr_band_normal"] = int((bands == "normal").sum())
+        result["upcr_band_mild"] = int((bands == "mild").sum())
+        result["upcr_band_heavy"] = int((bands == "heavy").sum())
+        result["upcr_median_mg_mmol"] = (float(per_patient.median())
+                                         if len(per_patient) else None)
 
     return result
 
