@@ -243,27 +243,44 @@ def probe_lab_redundancy(raw_dir: str, output_dir: str) -> dict:
     audits = []
 
     for label, df in frames.items():
-        # The ETL keeps only the most frequent tests before crosstabbing, so
-        # report both the full picture and the subset that actually becomes
-        # columns in features.csv.
-        top_n = 34 if label == "in-hosp" else 50
-        top = list(df["TEST_NM"].value_counts().index)[:top_n]
-        kept = df[df["TEST_NM"].isin(top)]
+        # Two different cuts, and reporting the wrong one gives the wrong
+        # number for the response letter.
+        #
+        # BEFORE normalization the ETL kept the top N by RAW NAME (34 / 50), so
+        # the same analyte under many spellings consumed several of those slots.
+        # AFTER normalization it keeps the top N by ENTITY (config.TOP_LABS_*),
+        # and each retained entity pulls in all of its name variants -- which is
+        # why the entity-first cut sees MORE raw names, not fewer.
+        old_top_n = 34 if label == "in-hosp" else 50
+        new_top_n = (config.TOP_LABS_IN_HOSPITAL if label == "in-hosp"
+                     else config.TOP_LABS_PRE_INDEX)
 
-        audit = audit_lab_names(kept, source_label=label)
+        old_kept = df[df["TEST_NM"].isin(
+            list(df["TEST_NM"].value_counts().index)[:old_top_n])]
+        n_raw_old = old_kept["TEST_NM"].nunique()
+
+        with_entity = add_canonical_name(df)
+        top_entities = list(
+            with_entity["canonical_test"].value_counts().index)[:new_top_n]
+        new_kept = with_entity[with_entity["canonical_test"].isin(top_entities)]
+        n_raw_new = new_kept["TEST_NM"].nunique()
+        n_entity = new_kept["canonical_test"].nunique()
+
+        audit = audit_lab_names(new_kept, source_label=label)
         audits.append(audit)
 
-        n_raw = kept["TEST_NM"].nunique()
-        n_entity = audit["canonical_test"].nunique()
-        # features.csv holds four aggregations per name (count/mean/min/max)
-        cols_before, cols_after = n_raw * 4, n_entity * 4
+        # features.csv holds four aggregations per column (count/mean/min/max)
+        cols_before, cols_after = n_raw_old * 4, n_entity * 4
 
-        print(f"\n  {label} (top {top_n} tests, as the ETL selects them)")
-        print(f"    distinct raw TEST_NM strings : {n_raw}")
-        print(f"    distinct clinical entities   : {n_entity}")
-        print(f"    feature columns before norm  : {cols_before}  ({n_raw} x 4 aggregations)")
-        print(f"    feature columns after  norm  : {cols_after}")
+        print(f"\n  {label}")
+        print(f"    BEFORE: top {old_top_n} by raw name -> {n_raw_old} names, "
+              f"{cols_before} columns")
+        print(f"    AFTER : top {new_top_n} by entity   -> {n_entity} entities "
+              f"(spanning {n_raw_new} raw names), {cols_after} columns")
         print(f"    redundant columns removed    : {cols_before - cols_after}")
+        print(f"    (the entity cut spans MORE raw names because each retained")
+        print(f"     entity brings all its spellings with it)")
+        n_raw, kept = n_raw_new, new_kept
 
         split = (audit[audit["n_raw_names_in_entity"] > 1]
                  .groupby("canonical_test")["TEST_NM"].nunique().sort_values(ascending=False))
