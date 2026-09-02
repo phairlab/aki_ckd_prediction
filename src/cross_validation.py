@@ -108,15 +108,38 @@ def run_one_fold(device: str, n_threads: int, fold_num: int,
 
     # --------------------------------------------------------------- impute
     imputer = FoldImputer(imputation_plan).fit(X_train_scaled)
+    n_imputed_cells = int(np.isnan(X_train_scaled).sum())
     X_train_imputed = imputer.transform(X_train_scaled)
     X_test_imputed = imputer.transform(X_test_scaled)
 
     if model_type == "xgboost":
-        # Preserve missingness: XGBoost learns a default split direction for
-        # NaN, which is the behaviour the manuscript describes.
+        # Preserve missingness. XGBoost learns a default branch direction for
+        # NaN at each split, which is the behaviour the manuscript describes and
+        # the stated reason for choosing it on EHR data. The originally
+        # submitted code applied np.nan_to_num to every model after scaling --
+        # mean imputation in standardized space -- so this path was never
+        # exercised. XGBClassifier's `missing` parameter defaults to np.nan, so
+        # nothing further is needed.
         X_train_model, X_test_model = X_train_scaled, X_test_scaled
     else:
+        # Neither a torch model nor sklearn's LogisticRegression accepts NaN.
         X_train_model, X_test_model = X_train_imputed, X_test_imputed
+
+    # Report what the model actually received, so the Methods claim about
+    # missing-data handling is verifiable from the run log rather than taken on
+    # trust. These two numbers belong in the response letter.
+    n_missing = int(np.isnan(X_train_model).sum())
+    total = int(X_train_model.size)
+    rows_affected = int(np.isnan(X_train_model).any(axis=1).sum())
+    if model_type == "xgboost":
+        print(f"[Fold {fold_num}] missing values passed to XGBoost: "
+              f"{n_missing:,}/{total:,} cells ({n_missing / max(total, 1) * 100:.2f}%) "
+              f"across {rows_affected:,}/{len(X_train_model):,} training rows "
+              f"— handled natively, not imputed", flush=True)
+    else:
+        print(f"[Fold {fold_num}] imputed {n_imputed_cells:,} cells for "
+              f"{model_type} using training-fold statistics only "
+              f"(fold-local; no test-fold values contributed)", flush=True)
 
     # ------------------------------------------------------------ selection
     selector = None
