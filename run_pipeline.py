@@ -235,6 +235,7 @@ def run_analyses_stage(args, experiment_dirs, ordering_path):
     from src.analysis import predictions as pred_mod
     from src.analysis.competing_risk import run_competing_risk_analysis
     from src.analysis.ascertainment import run_ascertainment_analysis
+    from src.analysis.ascertainment_bias import run_ascertainment_bias_analysis
     from src.analysis.threshold_sweep import run_threshold_sweep, emit_nri_sweep_commands
     from src.analysis.equivalence import run_equivalence_analysis
     from src.data_preprocessing import preprocess_data
@@ -272,6 +273,14 @@ def run_analyses_stage(args, experiment_dirs, ordering_path):
     run_ascertainment_analysis(
         experiment_predictions, features_df,
         followup_labs_path=config.get_followup_labs_path(),
+        output_dir=os.path.join(reports, "ascertainment"),
+        threshold=config.PRIMARY_THRESHOLD)
+
+    # Runs whether or not a follow-up extract exists. When one does, the
+    # descriptive comparison above is the direct answer and this bounds it;
+    # when one does not, this is the answer.
+    run_ascertainment_bias_analysis(
+        experiment_predictions, features_df,
         output_dir=os.path.join(reports, "ascertainment"),
         threshold=config.PRIMARY_THRESHOLD)
 
