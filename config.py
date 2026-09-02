@@ -126,6 +126,21 @@ def get_reports_dir():
 # `python src/probe_server_data.py --server` before trusting a refit.
 NORMALIZE_LAB_NAMES = True
 
+# Albuminuria component: include urine protein:creatinine as a last-resort
+# fallback when neither ACR nor dipstick is available.
+#
+# FALSE is the primary analysis and must stay that way for the reported
+# results: the published James score defines this component on ACR or urine
+# dipstick, and matching it is what preserves comparability with James et al.
+# and the Grampian external validation.
+#
+# The audit (src/audit_james_inputs.py, section 5) found 229 patients -- 4.9%
+# of the cohort, 6.4% of the unmeasured group -- scored "unmeasured" while
+# holding a uPCR result. KDIGO accepts uPCR when ACR is unavailable, so a
+# reviewer may fairly ask. Run the sensitivity arm with --albuminuria-upcr,
+# which sets this True and writes to separate result directories.
+ALBUMINURIA_INCLUDE_UPCR = False
+
 # Number of distinct lab entities retained per source before crosstabbing.
 # Raised from the original 34/50 because normalization collapses variants, so
 # the same cut on raw names would now discard genuinely distinct analytes.

@@ -547,8 +547,106 @@ def get_median_acr_category(acr_results):
     return 'unmeasured'
 
 
+# ---------------------------------------------------------------------------
+# Urine protein:creatinine ratio (sensitivity analysis only)
+# ---------------------------------------------------------------------------
+# The published James score defines the albuminuria component on ACR or urine
+# dipstick, and the PRIMARY analysis keeps that definition -- it is what
+# preserves comparability with James et al. and the Grampian validation.
+#
+# The audit found 229 patients (4.9% of the cohort, 6.4% of the unmeasured
+# group) who are scored "unmeasured" -- worth 1 point, the same as mild -- while
+# having a urine protein:creatinine ratio available. KDIGO accepts uPCR as an
+# alternative when ACR is unavailable, so those patients hold albuminuria
+# information the score discards. This supports a sensitivity analysis, enabled
+# by config.ALBUMINURIA_INCLUDE_UPCR.
+#
+# Band equivalences are KDIGO's (2024 CKD guideline, albuminuria categories):
+#
+#     category                 ACR (mg/mmol)   PCR (mg/mmol)
+#     A1 normal / mild             < 3             < 15
+#     A2 moderately increased     3 - 30          15 - 50
+#     A3 severely increased        > 30            > 50
+#
+# mapping onto the score's normal / mild / heavy. The ACR thresholds used
+# elsewhere in this module are 3.39 and 33.9, which are 30 and 300 mg/g
+# converted at 8.84; the PCR thresholds below are KDIGO's published values
+# rather than a conversion of them.
+
+PCR_NORMAL_THRESHOLD_MG_MMOL = 15.0
+PCR_HEAVY_THRESHOLD_MG_MMOL = 50.0
+
+# To mg/mmol. 1 mg/g = 1/8.84 mg/mmol; 1 mg/mg = 1 g/g = 1000 mg/g.
+_PCR_UNIT_FACTORS = {
+    "mg/mmol": 1.0,
+    "g/mmol": 1000.0,
+    "mg/g": 1.0 / 8.84,
+    "mg/mg": 1000.0 / 8.84,
+    "g/g": 1000.0 / 8.84,
+    "mg/gcreat": 1.0 / 8.84,
+}
+
+UNKNOWN_PCR_UNITS_SEEN = {}
+
+
+def pcr_to_mg_mmol(value, unit):
+    """Convert one protein:creatinine result to mg/mmol, or return None."""
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not np.isfinite(numeric):
+        return None
+
+    key = str(unit).strip().lower() if unit is not None else ""
+    if key in _PCR_UNIT_FACTORS:
+        return numeric * _PCR_UNIT_FACTORS[key]
+    for known, factor in _PCR_UNIT_FACTORS.items():
+        if key.startswith(known):
+            return numeric * factor
+
+    UNKNOWN_PCR_UNITS_SEEN[key] = UNKNOWN_PCR_UNITS_SEEN.get(key, 0) + 1
+    return None
+
+
+def get_median_pcr_category(pcr_labs):
+    """Albuminuria band from the median protein:creatinine ratio.
+
+    Median rather than any single value, matching how ACR and dipstick results
+    are already reduced in this module.
+    """
+    if pcr_labs is None or len(pcr_labs) == 0:
+        return 'unmeasured'
+
+    values = [pcr_to_mg_mmol(v, u)
+              for v, u in zip(pcr_labs['TEST_RSLT'], pcr_labs['TEST_UOFM'])]
+    values = [v for v in values if v is not None]
+    if not values:
+        return 'unmeasured'
+
+    median = float(np.median(values))
+    if median < PCR_NORMAL_THRESHOLD_MG_MMOL:
+        return 'normal'
+    if median <= PCR_HEAVY_THRESHOLD_MG_MMOL:
+        return 'mild'
+    return 'heavy'
+
+
+def report_unknown_pcr_units():
+    """Print and return the tally of unrecognised uPCR units."""
+    if not UNKNOWN_PCR_UNITS_SEEN:
+        return {}
+    total = sum(UNKNOWN_PCR_UNITS_SEEN.values())
+    print(f"[Units] {total} protein:creatinine result(s) had an unrecognised unit "
+          f"and were treated as missing:")
+    for unit, n in sorted(UNKNOWN_PCR_UNITS_SEEN.items(), key=lambda kv: -kv[1]):
+        print(f"    {unit!r}: {n}")
+    return dict(UNKNOWN_PCR_UNITS_SEEN)
+
+
 # calculate albuminuria status
-def get_albuminuria_status(patient_id, all_labs_df, index_admit_date, index_discharge_date):
+def get_albuminuria_status(patient_id, all_labs_df, index_admit_date,
+                          index_discharge_date, include_upcr=False):
     """
     Determine the albuminuria status for a patient.
     
@@ -596,8 +694,23 @@ def get_albuminuria_status(patient_id, all_labs_df, index_admit_date, index_disc
         (patient_labs['test_date'] <= index_discharge_date)
     ]
 
+    # Protein:creatinine, used ONLY as a last resort and only when enabled.
+    # Deliberately after dipstick rather than in KDIGO's own preference order
+    # (ACR > PCR > reagent strip): placing it last confines the change to
+    # patients who currently have no albuminuria measurement at all, which is
+    # what makes the sensitivity analysis interpretable as "what if the
+    # unmeasured group were rescued" rather than a different score.
+    pcr_labs = patient_labs[
+        patient_labs['lab_test_category'].str.contains(
+            'Protein/creatinine', case=False, na=False)
+        & (patient_labs['test_date'] >= lower_bound)
+        & (patient_labs['test_date'] <= index_discharge_date)
+    ] if include_upcr else patient_labs.iloc[0:0]
+
     # If no labs in window, return 'unmeasured'
     if acr_labs.empty and dipstick_labs.empty:
+        if include_upcr and not pcr_labs.empty:
+            return get_median_pcr_category(pcr_labs), acr_labs, dipstick_labs
         return 'unmeasured', acr_labs, dipstick_labs
     
     # Prioritize ACR measurements over dipstick
@@ -617,4 +730,6 @@ def get_albuminuria_status(patient_id, all_labs_df, index_admit_date, index_disc
         # print("Using dipstick")
         return get_median_dipstick_category(dipstick_labs['TEST_RSLT']), acr_labs, dipstick_labs
 
+    if include_upcr and not pcr_labs.empty:
+        return get_median_pcr_category(pcr_labs), acr_labs, dipstick_labs
     return 'unmeasured', acr_labs, dipstick_labs

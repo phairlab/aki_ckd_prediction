@@ -43,7 +43,7 @@ from james_score_helpers import (
     baseline_creatinine_mapping, discharge_creatinine_mapping,
     albuminuria_status_mapping,
     get_baseline_creatinine, get_discharge_creatinine, get_albuminuria_status,
-    report_unknown_units,
+    report_unknown_units, report_unknown_pcr_units,
 )
 
 import config
@@ -264,10 +264,34 @@ def preprocess_data(exp_config, cohort_log=None, verbose=True):
     features_df["discharge_creatinine_points"] = \
         features_df.discharge_creatinine_raw.map(discharge_creatinine_mapping)
 
+    include_upcr = getattr(config, "ALBUMINURIA_INCLUDE_UPCR", False)
     features_df["albuminuria_status_raw"] = features_df.apply(
         lambda row: get_albuminuria_status(
-            row["patient_id"], all_labs_df, row["admit_date"], row["discharge_date"])[0],
+            row["patient_id"], all_labs_df, row["admit_date"], row["discharge_date"],
+            include_upcr=include_upcr)[0],
         axis=1)
+
+    if include_upcr:
+        # Recompute without the fallback so the impact is a number in the log
+        # rather than something to be taken on trust.
+        published = features_df.apply(
+            lambda row: get_albuminuria_status(
+                row["patient_id"], all_labs_df, row["admit_date"],
+                row["discharge_date"], include_upcr=False)[0],
+            axis=1)
+        changed = published != features_df["albuminuria_status_raw"]
+        print(f"[Albuminuria] SENSITIVITY ARM: uPCR fallback enabled.")
+        print(f"[Albuminuria] band changed for {int(changed.sum()):,} of "
+              f"{len(features_df):,} patients "
+              f"({changed.mean() * 100:.2f}%)")
+        if changed.any():
+            moves = (pd.DataFrame({"from": published[changed],
+                                   "to": features_df.loc[changed,
+                                                         "albuminuria_status_raw"]})
+                     .groupby(["from", "to"]).size().sort_values(ascending=False))
+            for (src_band, dst_band), n in moves.items():
+                print(f"    {src_band:>11s} -> {dst_band:<8s} {n:>6,}")
+        report_unknown_pcr_units()
     features_df["albuminuria_status_points"] = \
         features_df.albuminuria_status_raw.map(albuminuria_status_mapping)
 

@@ -114,6 +114,12 @@ def parse_args():
                    help="Override the outcome for all experiments")
     p.add_argument("--skip-shap", action="store_true",
                    help="Skip out-of-fold SHAP (the slowest per-fold step)")
+    p.add_argument("--albuminuria-upcr", action="store_true",
+                   help="SENSITIVITY ARM: allow urine protein:creatinine as a "
+                        "last-resort albuminuria measurement when neither ACR "
+                        "nor dipstick exists. Affects 229 patients (4.9%%). "
+                        "Results go to separate '<name>_upcr' directories so "
+                        "they cannot be confused with the primary analysis.")
 
     p.add_argument("--analyses-only", action="store_true",
                    help="Skip training; run the post-hoc analyses on existing results")
@@ -181,6 +187,10 @@ def run_training_stage(args, devices):
         exp = config.apply_tuning_profile(exp, args.tuning)
 
         from dataclasses import replace
+        if args.albuminuria_upcr:
+            # Distinct name so the sensitivity arm lands in its own result
+            # directory and can never be pooled with the primary analysis.
+            exp = replace(exp, name=f"{exp.name}_upcr")
         if args.target:
             exp = replace(exp, target=args.target)
         if args.skip_shap:
@@ -388,6 +398,9 @@ def main():
     elif args.server:
         config.USE_SMOKE_DATA, config.USE_NONSENSE_DATA = False, False
 
+    if args.albuminuria_upcr:
+        config.ALBUMINURIA_INCLUDE_UPCR = True
+
     from src import parallel
     devices = parallel.resolve_devices(args.gpus)
 
@@ -400,6 +413,8 @@ def main():
                   else "secure server")
     print(f"# data      : {data_label}")
     print(f"# tuning    : {args.tuning}")
+    if config.ALBUMINURIA_INCLUDE_UPCR:
+        print(f"# albuminuria: SENSITIVITY ARM — uPCR fallback enabled")
     print(f"# devices   : {parallel.describe_devices(devices)}")
     if args.sequential:
         print(f"# threads   : OpenMP pinned to 1 (--sequential; see src/parallel.py)")
