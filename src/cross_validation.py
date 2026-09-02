@@ -153,9 +153,10 @@ def run_one_fold(device: str, n_threads: int, fold_num: int,
         # the comparison isolates the model.
         if method == "rfe":
             from xgboost import XGBClassifier
-            estimator = XGBClassifier(random_state=config.RANDOM_SEED,
-                                      n_jobs=n_threads, tree_method="hist",
-                                      eval_metric="logloss")
+            estimator = XGBClassifier(
+                random_state=config.RANDOM_SEED,
+                n_jobs=getattr(config, "XGBOOST_N_JOBS", 4),
+                tree_method="hist", eval_metric="logloss")
             selector = RFE(estimator=estimator, n_features_to_select=n_select,
                            step=exp.get("rfe_step", 0.1))
             selector.fit(X_train_imputed, y_train)
@@ -232,7 +233,8 @@ def _tune_fold(exp, X_train, y_train, device, n_threads, fold_num, output_dir):
         # Reproduces the originally submitted configuration exactly, so a
         # tuned-vs-untuned comparison is available in the response letter.
         defaults = {
-            "xgboost": {"random_state": config.RANDOM_SEED, "n_jobs": n_threads,
+            "xgboost": {"random_state": config.RANDOM_SEED,
+                        "n_jobs": getattr(config, "XGBOOST_N_JOBS", 4),
                         "eval_metric": "logloss", "tree_method": "hist"},
             "transformer": dict(exp.get("transformer_params") or {}),
             "logreg": {"max_iter": 5000, "random_state": config.RANDOM_SEED},
@@ -249,7 +251,7 @@ def _tune_fold(exp, X_train, y_train, device, n_threads, fold_num, output_dir):
             X_train, y_train, n_trials=exp["n_trials"],
             inner_folds=exp["inner_folds"], seed=config.RANDOM_SEED,
             label=f"{exp['name']}_f{fold_num}")
-        best["n_jobs"] = n_threads
+        best["n_jobs"] = getattr(config, "XGBOOST_N_JOBS", 4)
     elif model_type == "transformer":
         best, record = tuning.tune_transformer(
             X_train, y_train, device=device, n_trials=exp["n_trials"],

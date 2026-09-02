@@ -42,6 +42,21 @@ SERVER_RAW_DATA_DIR = "/data/kidney/Hing"
 FOLLOWUP_LABS_PATH: Optional[str] = None
 
 RANDOM_SEED = 1202
+
+# XGBoost thread count, PINNED rather than derived from the worker count.
+#
+# tree_method="hist" is not bit-reproducible across different thread counts:
+# the histogram is built in parallel and the summation order changes. Deriving
+# n_jobs from the number of workers therefore made results depend on --gpus.
+# Two runs of the identical configuration differed by up to 0.0176 AUROC
+# (xgb_james_raw: 0.9051 vs 0.8875), which is close to the 0.02 equivalence
+# margin -- because a tiny change in an inner-fold score sends the TPE sampler
+# down a different path and it selects a materially different configuration.
+#
+# Pinned here so the reported table is reproducible whatever --gpus is passed.
+# Raise it if XGBoost is the bottleneck, but keep it fixed across the runs that
+# go into the manuscript.
+XGBOOST_N_JOBS = 4
 N_OUTER_FOLDS = 10
 
 

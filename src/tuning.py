@@ -32,6 +32,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import time
 import warnings
 from typing import Callable, Optional
@@ -39,6 +40,9 @@ from typing import Callable, Optional
 import numpy as np
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import roc_auc_score
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+import config
 
 try:
     import optuna
@@ -284,7 +288,11 @@ def tune_xgboost(X, y, n_trials: int = 60, inner_folds: int = 5, seed: int = 120
 
         def fit_predict(X_fit, y_fit, X_held):
             clf = XGBClassifier(
-                **params, random_state=seed, n_jobs=-1,
+                **params, random_state=seed,
+                # Pinned, not -1: hist is not reproducible across thread
+                # counts, and n_jobs=-1 makes the search depend on how many
+                # workers happen to share the machine.
+                n_jobs=getattr(config, "XGBOOST_N_JOBS", 4),
                 eval_metric="logloss", tree_method="hist",
             )
             clf.fit(X_fit, y_fit, verbose=False)
@@ -295,7 +303,8 @@ def tune_xgboost(X, y, n_trials: int = 60, inner_folds: int = 5, seed: int = 120
     best_trial, record = _run_search(objective, n_trials, seed, f"{label}_xgb")
 
     best = dict(record["best_params"])
-    best.update({"random_state": seed, "n_jobs": -1,
+    best.update({"random_state": seed,
+                 "n_jobs": getattr(config, "XGBOOST_N_JOBS", 4),
                  "eval_metric": "logloss", "tree_method": "hist"})
     return best, record
 
