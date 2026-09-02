@@ -50,8 +50,14 @@ import pandas as pd
 # being folded into the base analyte.
 
 PROTECTED_RULES: tuple[tuple[str, str], ...] = (
-    (r"albumin\s*/?\s*creatinine\s*ratio|\bacr\b",     "albumin_creatinine_ratio"),
-    (r"protein\s*/?\s*creatinine\s*ratio",             "protein_creatinine_ratio"),
+    # The literal word "ratio" is NOT required. The AHS extract records the
+    # albumin:creatinine ratio as "Albumin/Creatinine, Urine" 326 times, and
+    # requiring "ratio" let that fall through to the urine-creatinine rule
+    # below -- splitting one assay across two feature columns and inventing a
+    # spurious creatinine_urine column. Same trap for "Protein/creatinine",
+    # which was only rescued by its lab_test_category.
+    (r"albumin\s*/?\s*creatinine|\bacr\b",              "albumin_creatinine_ratio"),
+    (r"protein\s*/?\s*creatinine",                     "protein_creatinine_ratio"),
     (r"creatinine.*urine|urine.*creatinine",           "creatinine_urine"),
     (r"creatinine\s*clearance",                        "creatinine_clearance"),
     (r"dipstick|urinalysis|\bua\b",                    "urine_dipstick"),
@@ -424,6 +430,16 @@ SELF_TEST_CASES: tuple[tuple[str, str], ...] = (
     ("Albumin Creatinine Ratio", "albumin_creatinine_ratio"),
     ("Protein/Creatinine Ratio Conc, Urine", "protein_creatinine_ratio"),
     ("Phosphorus", "phosphate"),
+    # An ACR without the word "ratio" in its name. 326 rows in the real
+    # extract, unit mg/mmol, value distribution indistinguishable from the
+    # named ACR results -- it is the same assay.
+    ("Albumin/Creatinine, Urine", "albumin_creatinine_ratio"),
+    ("Albumin/Creatinine Ratio", "albumin_creatinine_ratio"),
+    ("Protein/creatinine", "protein_creatinine_ratio"),
+    # ...and these must still stay distinct from it
+    ("Creatinine, Urine", "creatinine_urine"),
+    ("Creatinine", "creatinine"),
+    ("Albumin", "albumin"),
     ("HCO3,VENOUS", "bicarbonate"),
     ("GFR ESTIMATED", "egfr"),
     ("EXT Hemoglobin (Hgb)-g/L", "hemoglobin"),
