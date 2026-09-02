@@ -129,16 +129,33 @@ NORMALIZE_LAB_NAMES = True
 # Albuminuria component: include urine protein:creatinine as a last-resort
 # fallback when neither ACR nor dipstick is available.
 #
-# FALSE is the primary analysis and must stay that way for the reported
-# results: the published James score defines this component on ACR or urine
-# dipstick, and matching it is what preserves comparability with James et al.
-# and the Grampian external validation.
+# DO NOT ENABLE THIS FOR THE RESUBMISSION. It is dormant insurance, not part of
+# the planned analysis.
 #
-# The audit (src/audit_james_inputs.py, section 5) found 229 patients -- 4.9%
-# of the cohort, 6.4% of the unmeasured group -- scored "unmeasured" while
-# holding a uPCR result. KDIGO accepts uPCR when ACR is unavailable, so a
-# reviewer may fairly ask. Run the sensitivity arm with --albuminuria-upcr,
-# which sets this True and writes to separate result directories.
+# James et al. define the albuminuria component on ACR or urine dipstick only.
+# Multimedia Appendix 2, section A1 states it plainly: "albuminuria status is
+# determined using either albumin:creatinine ratio or urine dipstick
+# measurements". Substituting a different assay means the model being compared
+# against is no longer the James score, which dissolves the like-for-like
+# comparison the whole paper rests on.
+#
+# The manuscript also argues against it directly. From the Discussion:
+#
+#     "unmeasured albuminuria carries a defined one-point weight, which is how
+#      76.0% of this cohort was scored, creating minimal implementation and
+#      interpretation barriers: no complex EHR integration, NO IMPUTATION
+#      PIPELINES for hundreds of potentially missing features..."
+#
+# A uPCR fallback is exactly such a pipeline. "Unmeasured" is not missing data
+# in this score; it is a modelled state with a deliberate weight, and its
+# computability without extra inputs is presented as a REASON to prefer the
+# score. Filling it in undermines that argument.
+#
+# What is worth keeping is the NUMBER, not the arm. Section 5 of
+# src/audit_james_inputs.py reports that 229 patients (4.9% of the cohort) hold
+# a uPCR result while scored "unmeasured", and where they would land. That
+# answers a reviewer who asks why data on hand went unused, without changing
+# the score. Enable the arm only if a reviewer explicitly asks to see it.
 ALBUMINURIA_INCLUDE_UPCR = False
 
 # Number of distinct lab entities retained per source before crosstabbing.

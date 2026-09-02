@@ -115,11 +115,14 @@ def parse_args():
     p.add_argument("--skip-shap", action="store_true",
                    help="Skip out-of-fold SHAP (the slowest per-fold step)")
     p.add_argument("--albuminuria-upcr", action="store_true",
-                   help="SENSITIVITY ARM: allow urine protein:creatinine as a "
-                        "last-resort albuminuria measurement when neither ACR "
-                        "nor dipstick exists. Affects 229 patients (4.9%%). "
-                        "Results go to separate '<name>_upcr' directories so "
-                        "they cannot be confused with the primary analysis.")
+                   help="NOT FOR THE RESUBMISSION. Allows urine "
+                        "protein:creatinine as a last-resort albuminuria "
+                        "measurement, which departs from the published James "
+                        "score definition (ACR or dipstick only) and "
+                        "contradicts the manuscript's own argument that the "
+                        "score needs no imputation pipeline. Dormant insurance "
+                        "in case a reviewer asks; see config.py. Writes to "
+                        "separate '<name>_upcr' directories.")
 
     p.add_argument("--analyses-only", action="store_true",
                    help="Skip training; run the post-hoc analyses on existing results")
