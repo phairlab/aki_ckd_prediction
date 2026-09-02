@@ -222,6 +222,126 @@ def audit_units(labs):
     print("  and mmol/L. Anything else is treated as missing and tallied.")
 
 
+# ---------------------------------------------------------------------------
+# 4. Completeness sweep
+# ---------------------------------------------------------------------------
+# Sections 1 and 2 compare two rules against each other. That catches a
+# disagreement but it CANNOT prove completeness: a test recorded under a name
+# neither rule recognises is invisible to both and shows up as zero.
+#
+# This section does not use the score's rules at all. It casts a deliberately
+# over-broad net over every distinct test name in the extract, then reports
+# which candidates the score's rules actually select. Over-broad is the point:
+# false positives here cost a line of output, false negatives cost a wrong
+# James score.
+
+# Any of these makes a name a CANDIDATE for the albuminuria component.
+BROAD_ALBUMINURIA_NET = (
+    r"album",                    # albumin, microalbumin, albuminuria
+    r"\balb\b|\balb\s*[/,]",    # ALB, ALB/CREAT
+    r"\bmalb\b|\bualb\b|\bmau\b",
+    r"/\s*creat",                # anything/creatinine, however spelled
+    r"\ba\s*[/:]\s*c\b",        # A/C ratio, A:C
+    r"\bacr\b",
+    r"dipstick|urinalys|\bua\b",
+    r"protein.*urine|urine.*protein",
+)
+
+# Units that essentially only appear on a ratio-type urine result.
+ALBUMINURIA_UNIT_HINTS = ("mg/mmol", "mg/g", "g/mol", "mg/gcreat")
+
+
+def completeness_sweep(labs, output_dir):
+    """Enumerate every distinct test, then check what the score's rules select.
+
+    Writes the full distinct-name inventory so it can be read by eye. That
+    inventory is the actual evidence of completeness; everything else in this
+    script is a consistency check.
+    """
+    print(f"\n{'=' * 74}\n4. COMPLETENESS SWEEP (does not use the score's rules)"
+          f"\n{'=' * 74}")
+
+    name = labs["TEST_NM"].fillna("").astype(str)
+    cat = labs["lab_test_category"].fillna("").astype(str)
+    unit = labs["TEST_UOFM"].fillna("").astype(str)
+    haystack = name + " || " + cat
+
+    candidate = pd.Series(False, index=labs.index)
+    for pattern in BROAD_ALBUMINURIA_NET:
+        candidate |= haystack.str.contains(pattern, case=False, regex=True, na=False)
+    for hint in ALBUMINURIA_UNIT_HINTS:
+        candidate |= unit.str.lower().str.contains(hint.lower(), regex=False, na=False)
+
+    # What the score's own rules do with each candidate
+    acr_selected = cat.str.contains(ACR_CATEGORY_PATTERN, case=False, na=False)
+    dip_selected = cat.str.contains(DIPSTICK_CATEGORY_PATTERN, case=False, na=False)
+
+    sub = labs[candidate].copy()
+    sub["__acr_selected"] = acr_selected[candidate]
+    sub["__dipstick_selected"] = dip_selected[candidate]
+
+    grouped = (sub.groupby(["TEST_NM", "lab_test_category", "TEST_UOFM"], dropna=False)
+               .agg(n_rows=("TEST_NM", "size"),
+                    n_patients=("id", "nunique") if "id" in sub.columns
+                               else ("TEST_NM", "size"),
+                    canonical=("canonical_test", "first"),
+                    used_as_acr=("__acr_selected", "max"),
+                    used_as_dipstick=("__dipstick_selected", "max"))
+               .reset_index()
+               .sort_values("n_rows", ascending=False))
+
+    grouped["used_by_score"] = grouped["used_as_acr"] | grouped["used_as_dipstick"]
+
+    print(f"  distinct test names in the extract      : {name.nunique():,}")
+    print(f"  candidates under the broad net          : {len(grouped):,} distinct "
+          f"({int(candidate.sum()):,} rows)")
+    print(f"  of those, USED by the albuminuria step  : "
+          f"{int(grouped['used_by_score'].sum()):,} distinct")
+    print(f"  of those, NOT used                      : "
+          f"{int((~grouped['used_by_score']).sum()):,} distinct")
+
+    print(f"\n  --- candidates the score DOES use ---")
+    for _, r in grouped[grouped["used_by_score"]].iterrows():
+        role = "ACR" if r["used_as_acr"] else "dipstick"
+        print(f"    {r['n_rows']:>7,}  [{role:<8s}] {str(r['TEST_NM'])[:44]:<44s} "
+              f"{str(r['TEST_UOFM'])[:12]:<12s} -> {r['canonical']}")
+
+    not_used = grouped[~grouped["used_by_score"]]
+    print(f"\n  --- candidates the score does NOT use (REVIEW THESE) ---")
+    if not_used.empty:
+        print("    none")
+    else:
+        for _, r in not_used.iterrows():
+            print(f"    {r['n_rows']:>7,}  {str(r['TEST_NM'])[:44]:<44s} "
+                  f"{str(r['TEST_UOFM'])[:12]:<12s} cat={str(r['lab_test_category'])[:24]:<24s} "
+                  f"-> {r['canonical']}")
+        print(f"\n    Each line is a test whose name or unit resembles an albuminuria")
+        print(f"    measurement but which the score ignores. Most will be legitimately")
+        print(f"    excluded -- serum albumin, urine protein, a protein:creatinine")
+        print(f"    ratio. Any that is genuinely an albumin:creatinine ratio is a")
+        print(f"    patient scored 'unmeasured' who should not have been.")
+
+    path = os.path.join(output_dir, "james_audit_albuminuria_candidates.csv")
+    grouped.to_csv(path, index=False)
+
+    inventory = (labs.groupby(["TEST_NM", "lab_test_category", "TEST_UOFM"], dropna=False)
+                 .size().reset_index(name="n_rows")
+                 .sort_values("n_rows", ascending=False))
+    inv_path = os.path.join(output_dir, "lab_test_inventory.csv")
+    inventory.to_csv(inv_path, index=False)
+
+    print(f"\n  candidates -> {path}")
+    print(f"  FULL inventory of all {len(inventory):,} distinct "
+          f"(name, category, unit) triples -> {inv_path}")
+    print(f"  The inventory is the real completeness evidence: read it once and the")
+    print(f"  question is settled for good.")
+
+    return {"n_distinct_names": int(name.nunique()),
+            "n_candidate_groups": int(len(grouped)),
+            "n_candidates_used": int(grouped["used_by_score"].sum()),
+            "n_candidates_unused": int((~grouped["used_by_score"]).sum())}
+
+
 def main():
     p = argparse.ArgumentParser(description="Audit the James score's lab selection")
     source = p.add_mutually_exclusive_group()
@@ -242,14 +362,18 @@ def main():
     result.update(audit_albuminuria(labs, output_dir))
     result.update(audit_creatinine(labs, output_dir))
     audit_units(labs)
+    result.update(completeness_sweep(labs, output_dir))
 
     print(f"\n{'=' * 74}\nSUMMARY\n{'=' * 74}")
     clean = (result["acr_missed_rows"] == 0
              and result["acr_extra_rows"] == 0
              and result["creatinine_contaminant_rows"] == 0)
     if clean:
-        print("  Both selections are clean. The submitted James scores stand, and")
-        print("  this check can be cited in the response letter.")
+        print("  Both selections are internally consistent. Note what that does and")
+        print("  does not establish: sections 1 and 2 compare two rules against each")
+        print("  other, so they detect disagreement, not omission. Section 4's")
+        print("  candidate list and lab_test_inventory.csv are the completeness")
+        print("  evidence -- read the 'does NOT use' list before citing this.")
     else:
         print("  At least one selection is wrong. The James score, Table 3's")
         print("  albuminuria distribution and every model using it are affected.")
