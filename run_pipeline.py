@@ -197,7 +197,36 @@ def run_training_stage(args, devices):
     return experiment_dirs
 
 
-def run_analyses_stage(args, experiment_dirs):
+def write_ordering_file(experiment_dirs):
+    """Write the experiment-name -> plot-label ordering for this run.
+
+    Written ONCE, before anything consumes it, and every consumer is handed the
+    same absolute path: the evaluation script, the NRI call and the NRI
+    threshold sweep. Result directories carry a timestamp in their name, so an
+    ordering file from a previous run names directories that no longer exist,
+    and the evaluation suite refuses the run rather than silently evaluating the
+    wrong thing.
+
+    Never hand-edit this file, and never point the suite at its own
+    `example_ordering.json` -- that one is a template pinned to whatever run its
+    author last made.
+    """
+    reports = config.get_reports_dir()
+    os.makedirs(reports, exist_ok=True)
+
+    ordering = {os.path.basename(path): config.EXPERIMENT_LABELS.get(name, name)
+                for name, path in experiment_dirs.items()}
+    path = os.path.join(reports, "ordering.json")
+    with open(path, "w") as f:
+        json.dump(ordering, f, indent=4)
+
+    print(f"\n[Ordering] {len(ordering)} experiment(s) -> {path}")
+    for directory, label in ordering.items():
+        print(f"    {label:<44s} {directory}")
+    return os.path.abspath(path)
+
+
+def run_analyses_stage(args, experiment_dirs, ordering_path):
     """Every post-hoc analysis that reads the fold predictions."""
     from src.analysis import predictions as pred_mod
     from src.analysis.competing_risk import run_competing_risk_analysis
@@ -263,6 +292,7 @@ def run_analyses_stage(args, experiment_dirs):
     emit_nri_sweep_commands(
         experiment_dirs, baseline, config.THRESHOLD_SWEEP,
         output_dir=os.path.join(reports, "threshold_sweep"),
+        ordering_file=ordering_path,
         eval_suite_dir=args.eval_suite_dir)
 
 
@@ -270,16 +300,10 @@ def run_analyses_stage(args, experiment_dirs):
 # Handoff to the evaluation suite
 # ---------------------------------------------------------------------------
 
-def emit_eval_commands(experiment_dirs, args):
+def emit_eval_commands(experiment_dirs, args, ordering_path):
     """Write an ordering file and a runnable script for the evaluation suite."""
     reports = config.get_reports_dir()
     os.makedirs(reports, exist_ok=True)
-
-    ordering = {os.path.basename(path): config.EXPERIMENT_LABELS.get(name, name)
-                for name, path in experiment_dirs.items()}
-    ordering_path = os.path.join(reports, "ordering.json")
-    with open(ordering_path, "w") as f:
-        json.dump(ordering, f, indent=4)
 
     results_root = config.get_experiments_dir()
     baseline = (config.NRI_BASELINE if config.NRI_BASELINE in experiment_dirs
@@ -298,7 +322,7 @@ set -euo pipefail
 
 EVAL_SUITE="{args.eval_suite_dir}"
 RESULTS="{os.path.abspath(results_root)}"
-ORDERING="{os.path.abspath(ordering_path)}"
+ORDERING="{ordering_path}"
 REPORTS="{os.path.abspath(reports)}"
 
 cd "$EVAL_SUITE"
@@ -335,7 +359,6 @@ echo "  $REPORTS/threshold_sweep/run_nri_threshold_sweep.sh"
         f.write(script)
     os.chmod(path, 0o755)
 
-    print(f"\n[Eval] Ordering file  -> {ordering_path}")
     print(f"[Eval] Run next       -> {path}")
     return path
 
@@ -389,11 +412,16 @@ def main():
     else:
         experiment_dirs = run_training_stage(args, devices)
 
+    # Written once here, so the analyses, the evaluation script and the NRI
+    # sweep all reference the same file for the directories this run produced.
+    ordering_path = (write_ordering_file(experiment_dirs) if experiment_dirs
+                     else None)
+
     if not args.skip_analyses:
-        run_analyses_stage(args, experiment_dirs)
+        run_analyses_stage(args, experiment_dirs, ordering_path)
 
     if args.emit_eval_commands and experiment_dirs:
-        emit_eval_commands(experiment_dirs, args)
+        emit_eval_commands(experiment_dirs, args, ordering_path)
 
     elapsed = datetime.now() - started
     print(f"\n{'#' * 70}")

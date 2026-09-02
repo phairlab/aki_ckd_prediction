@@ -188,13 +188,24 @@ def _plot_sweep(combined, output_dir, ci_level):
 # ---------------------------------------------------------------------------
 
 def emit_nri_sweep_commands(experiment_dirs, baseline_name, thresholds,
-                            output_dir, eval_suite_dir="../lancet-digital-health-eval-suite",
-                            ordering_file="example_ordering.json"):
+                            output_dir, ordering_file,
+                            eval_suite_dir="../lancet-digital-health-eval-suite"):
     """Write the nri.py invocations covering the same threshold grid.
 
     NRI lives in the evaluation suite, not here, so this repository does not
     ship a second implementation that could drift onto a different probability
     scale. This writes a runnable script rather than duplicating the maths.
+
+    `ordering_file` must be the ordering written by THIS run (an absolute path),
+    never the suite's `example_ordering.json`. Experiment directories are named
+    by timestamp, so a stale ordering file lists directories that no longer
+    exist and nri.py refuses the run:
+
+        --baseline_dir '20260901_2102_logreg_james_score_fold_results' is not
+        listed in example_ordering.json
+
+    There is deliberately no default: this argument is the whole reason the
+    generated script works, and a default is what broke it the first time.
     """
     os.makedirs(output_dir, exist_ok=True)
     baseline_dir = experiment_dirs.get(baseline_name)
@@ -202,6 +213,8 @@ def emit_nri_sweep_commands(experiment_dirs, baseline_name, thresholds,
         print(f"[ThresholdSweep] Baseline {baseline_name!r} not found; "
               f"skipping NRI command generation.")
         return None
+
+    ordering_file = os.path.abspath(ordering_file)
 
     lines = [
         "#!/usr/bin/env bash",
@@ -216,7 +229,16 @@ def emit_nri_sweep_commands(experiment_dirs, baseline_name, thresholds,
         f'EVAL_SUITE="{eval_suite_dir}"',
         f'BASELINE="{os.path.abspath(baseline_dir)}"',
         f'OUT="{os.path.abspath(output_dir)}"',
+        f'ORDERING="{ordering_file}"',
         'mkdir -p "$OUT/nri_by_threshold"',
+        "",
+        "# The ordering is generated per run and keyed by the timestamped result",
+        "# directory names, so it must be the one this run wrote.",
+        'if [[ ! -f "$ORDERING" ]]; then',
+        '    echo "Ordering file not found: $ORDERING" >&2',
+        '    echo "Re-run: python run_pipeline.py --analyses-only" >&2',
+        '    exit 1',
+        'fi',
         "",
         'cd "$EVAL_SUITE"',
         "",
@@ -227,7 +249,7 @@ def emit_nri_sweep_commands(experiment_dirs, baseline_name, thresholds,
             f"echo '--- NRI at threshold {t:.2f} ---'",
             "python nri.py \\",
             '    --baseline_dir "$BASELINE" \\',
-            f'    --ordering "{ordering_file}" \\',
+            '    --ordering "$ORDERING" \\',
             f"    --threshold {t} \\",
             "    --recalibrate \\",
             "    --bootstrap 2000 \\",
