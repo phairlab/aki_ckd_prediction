@@ -24,7 +24,10 @@ from src.data_preprocessing import preprocess_data
 from src.cross_validation import run_cross_validation
 from src.analysis.net_reclassification import run_nri_comparisons
 from src.analysis.shap_analysis import perform_shap_analysis_tree, perform_shap_analysis_kernel
-from src.analysis.umap_projection import generate_umap_projection
+try:
+    from src.analysis.umap_projection import generate_umap_projection
+except ImportError:
+    generate_umap_projection = None
 
 
 def parse_args():
@@ -55,6 +58,8 @@ def parse_args():
                         help="Skip SHAP analysis")
     parser.add_argument("--skip-umap", action="store_true",
                         help="Skip UMAP projections")
+    parser.add_argument("--sex-subgroups", action="store_true",
+                        help="Generate sex-specific subgroup reports (female/male) in addition to whole-cohort results")
 
     # NRI only
     parser.add_argument("--nri-only", action="store_true",
@@ -227,6 +232,10 @@ def main():
             exp_config = config.ExperimentConfig(
                 **{**exp_config.__dict__, "perform_umap": False}
             )
+        if args.sex_subgroups:
+            exp_config = config.ExperimentConfig(
+                **{**exp_config.__dict__, "sex_subgroups": True}
+            )
 
         # Preprocess
         data = preprocess_data(exp_config)
@@ -242,10 +251,13 @@ def main():
 
         # UMAP
         if exp_config.perform_umap:
-            generate_umap_projection(
-                data["features"], data["labels"],
-                output_dir, exp_config.name,
-            )
+            if generate_umap_projection is None:
+                print("[UMAP] UMAP module not available, skipping projection.")
+            else:
+                generate_umap_projection(
+                    data["features"], data["labels"],
+                    output_dir, exp_config.name,
+                )
 
     # NRI comparisons
     if len(experiment_dirs) > 1:

@@ -16,7 +16,7 @@ from typing import Optional
 
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 
-USE_NONSENSE_DATA = True          # flip to False on the secure server
+USE_NONSENSE_DATA = False          # flip to False on the secure server
 
 # Server paths (only used when USE_NONSENSE_DATA is False)
 SERVER_DATA_DIR = "/data/kidney/Sacha/newdata"
@@ -71,7 +71,7 @@ def get_etl_output_dir():
 
 def get_experiments_dir():
     """Root directory for experiment outputs."""
-    return os.path.join(PROJECT_ROOT, "experiments", "results")
+    return os.path.join(PROJECT_ROOT, "experiments", "results", "paper")
 
 
 # ---------------------------------------------------------------------------
@@ -97,6 +97,7 @@ class ExperimentConfig:
     # Flags
     perform_shap: bool = True
     perform_umap: bool = True
+    sex_subgroups: bool = False
 
 
 EXPERIMENTS = {
@@ -129,21 +130,26 @@ EXPERIMENTS = {
         n_features=100,
         feature_selection_method="selectkbest",
     ),
-    "transformer_egfr": ExperimentConfig(
-        name="transformer_egfr",
-        model_type="transformer",
-        feature_set="egfr",
-    ),
+    # "transformer_egfr": ExperimentConfig(
+    #     name="transformer_egfr",
+    #     model_type="transformer",
+    #     feature_set="egfr",
+    # ),
 }
 
 
 # NRI comparison pairs: (baseline_experiment, new_experiment)
 NRI_PAIRS = [
     ("xgb_alberta_score", "xgb_alberta_raw"),
-    ("xgb_alberta_raw", "transformer_alberta_raw"),
-    ("xgb_alberta_raw", "xgb_expanded"),
-    ("xgb_alberta_raw", "transformer_expanded"),
-    ("xgb_expanded", "transformer_expanded"),
+    ("xgb_alberta_score", "transformer_alberta_raw"),
+    ("xgb_alberta_score", "xgb_expanded"),
+    ("xgb_alberta_score", "transformer_expanded"),
+    # ("xgb_alberta_raw", "transformer_alberta_raw"),
+    # ("xgb_alberta_raw", "xgb_expanded"),
+    # ("xgb_alberta_raw", "transformer_expanded"),
+    # ("transformer_alberta_raw", "xgb_expanded"),
+    # ("transformer_alberta_raw", "transformer_expanded"),
+    # ("xgb_expanded", "transformer_expanded"),
 ]
 
 NRI_THRESHOLDS = [0.2]

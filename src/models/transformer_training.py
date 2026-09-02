@@ -14,6 +14,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
 from sklearn.model_selection import train_test_split
+from sklearn.model_selection import StratifiedKFold
 
 from src.models.transformer_model import TabularTransformer, LargeTabularTransformer
 
@@ -104,6 +105,38 @@ def train_with_validation(X_train, y_train, device,
         model.load_state_dict(best_model_state)
 
     return model, train_losses, val_losses, best_epoch
+
+
+def oof_train_probas(X_train, y_train, device, n_splits=5, seed=1202, **train_kwargs):
+    """Inner-CV out-of-fold probabilities for the training set.
+
+    Each row gets a prediction from a model that never trained on it. These are
+    the honest predictions the calibration map must be fitted on -- in-sample
+    predictions are memorised and produce the wrong map.
+
+    train_kwargs are passed straight to train_with_validation, so the inner
+    models must be configured identically to the final model.
+    """
+    oof = np.full(len(y_train), np.nan, dtype=np.float64)
+    skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=seed)
+
+    for k, (fit_idx, held_idx) in enumerate(skf.split(X_train, y_train), 1):
+        print(f"  inner fold {k}/{n_splits} "
+              f"(fit {len(fit_idx)}, held-out {len(held_idx)}, "
+              f"held-out events {int(y_train[held_idx].sum())})")
+
+        inner_model, _, _, _ = train_with_validation(
+            X_train[fit_idx], y_train[fit_idx], device=device, **train_kwargs
+        )
+        _, p = predict_transformer(inner_model, X_train[held_idx], device=device)
+        oof[held_idx] = p
+
+        del inner_model
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
+    assert not np.isnan(oof).any(), "some rows never received an out-of-fold prediction"
+    return oof
 
 
 def predict_transformer(model, X_test, device):

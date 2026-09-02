@@ -254,8 +254,14 @@ def preprocess_data(exp_config):
     features_used = features_df[feature_columns].values
     feature_names = np.array(feature_columns)
 
-    # Handle any remaining NaN/inf values in features
-    features_used = np.nan_to_num(features_used, nan=0.0, posinf=0.0, neginf=0.0)
+    # Compute the median missingness of the features
+    missingness = features_df[feature_columns].isnull().sum() / len(features_df)
+    median_missingness = missingness.median()
+    print(sorted(missingness.tolist()))
+    print(f"Median missingness of features: {median_missingness:.4f}")
+
+    # # Handle any remaining NaN/inf values in features
+    # features_used = np.nan_to_num(features_used, nan=0.0, posinf=0.0, neginf=0.0)
 
     print(f"[Data] Final feature matrix: {features_used.shape[0]} patients x {features_used.shape[1]} features")
 

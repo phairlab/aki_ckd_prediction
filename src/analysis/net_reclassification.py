@@ -61,6 +61,7 @@ def calculate_nri(y_true, y_pred_model1, y_pred_model2, thresholds):
         "controls_down": controls_down,
         "cases_total": cases_total,
         "controls_total": controls_total,
+        "movement": np.sign(cat2 - cat1).astype(float),
     }
 
 
@@ -69,6 +70,24 @@ def _load_fold_predictions(experiment_path, fold_num):
     path = os.path.join(experiment_path, f"fold_{fold_num}_predictions.json")
     with open(path) as f:
         return json.load(f)
+
+
+def _nri_pooled_ci(y_true, movement, n_boot=2000, ci_level=0.95, seed=0):
+    """Percentile bootstrap CI for pooled NRI. Assumes one row per patient."""
+    y = np.asarray(y_true) == 1
+    s = np.asarray(movement, dtype=float)
+    rng = np.random.default_rng(seed)
+
+    def nri(idx):
+        yy, ss = y[idx], s[idx]
+        if yy.sum() == 0 or yy.all():
+            return np.nan
+        return ss[yy].mean() - ss[~yy].mean()
+
+    draws = np.array([nri(rng.integers(0, y.size, y.size)) for _ in range(n_boot)])
+    draws = draws[np.isfinite(draws)]
+    lo, hi = (1 - ci_level) / 2 * 100, (1 + ci_level) / 2 * 100
+    return float(np.percentile(draws, lo)), float(np.percentile(draws, hi))
 
 
 def calculate_nri_across_folds(exp1_path, exp2_path, thresholds, n_folds=10):
@@ -91,6 +110,7 @@ def calculate_nri_across_folds(exp1_path, exp2_path, thresholds, n_folds=10):
 
     fold_results = []
     fold_nri_values = []
+    pooled_y, pooled_move = [], []
 
     for fold in range(1, n_folds + 1):
         d1 = _load_fold_predictions(exp1_path, fold)
@@ -108,7 +128,13 @@ def calculate_nri_across_folds(exp1_path, exp2_path, thresholds, n_folds=10):
         )
         fold_results.append(nri)
         fold_nri_values.append(nri["NRI_total"])
+
+        pooled_y.append(np.array(d1["y_true"]))
+        pooled_move.append(np.array(nri["movement"]))
+
         print(f"  Fold {fold}: NRI = {nri['NRI_total']:.4f}")
+
+    # print([np.asarray(a).shape for a in pooled_y], [np.asarray(a).shape for a in pooled_move])
 
     # Aggregate
     mean_nri = float(np.mean(fold_nri_values))
@@ -125,6 +151,9 @@ def calculate_nri_across_folds(exp1_path, exp2_path, thresholds, n_folds=10):
     overall_nri_controls = (total_controls_down - total_controls_up) / total_controls if total_controls > 0 else 0
     overall_nri = overall_nri_cases + overall_nri_controls
 
+    ci_lo, ci_hi = _nri_pooled_ci(np.concatenate(pooled_y), np.concatenate(pooled_move))
+    print(f"  Pooled NRI: {overall_nri:.4f} (95% CI {ci_lo:.4f} to {ci_hi:.4f})")
+
     print(f"\n  Mean NRI: {mean_nri:.4f} +/- {std_nri:.4f}")
     print(f"  Pooled NRI: {overall_nri:.4f} (cases: {overall_nri_cases:.4f}, controls: {overall_nri_controls:.4f})")
 
@@ -134,12 +163,13 @@ def calculate_nri_across_folds(exp1_path, exp2_path, thresholds, n_folds=10):
         "thresholds": thresholds,
         "n_folds": n_folds,
         "fold_nri_values": fold_nri_values,
-        "fold_results": fold_results,
+        "fold_results": [{k: v for k, v in r.items() if k != "movement"} for r in fold_results],
         "mean_nri": mean_nri,
         "std_nri": std_nri,
         "overall_nri": overall_nri,
         "overall_nri_cases": overall_nri_cases,
         "overall_nri_controls": overall_nri_controls,
+        "overall_nri_ci": [ci_lo, ci_hi],
         "total_cases": total_cases,
         "total_controls": total_controls,
     }
