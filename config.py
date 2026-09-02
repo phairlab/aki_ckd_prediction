@@ -126,6 +126,17 @@ def get_reports_dir():
 # `python src/probe_server_data.py --server` before trusting a refit.
 NORMALIZE_LAB_NAMES = True
 
+# A *_count feature counts whether the test was ORDERED, not whether it
+# produced a number. Semi-quantitative and text results ("1+", "NEGATIVE",
+# "<0.3", "SEE COMMENT") therefore contribute to counts, while mean/min/max
+# still use numeric values only.
+#
+# The submitted analysis dropped non-numeric rows before crosstabbing, which
+# understated labs_count:urine_dipstick roughly fivefold (225 of 1,288 rows)
+# and excluded 23,102 pre-index and 1,027 in-hospital results from every count
+# feature. Set False to reproduce that behaviour.
+COUNT_ANY_RESULT = True
+
 # Albuminuria component: include urine protein:creatinine as a last-resort
 # fallback when neither ACR nor dipstick is available.
 #

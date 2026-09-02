@@ -106,14 +106,25 @@ def trim(crosstab, ratio):
     crosstab.drop(to_drop, inplace=True, axis=1)
 
 
-def _build_crosstab(df, id_col, prefix, name_col, value_col):
-    """Build count/mean/min/max crosstab for a data source."""
+def _build_crosstab(df, id_col, prefix, name_col, value_col, count_col=None):
+    """Build count/mean/min/max crosstab for a data source.
+
+    `count_col`, when given, is used for the COUNT aggregation while
+    `value_col` is used for mean/min/max. That distinction matters for
+    semi-quantitative results: a urine dipstick reading of "1+" or a lab result
+    of "SEE COMMENT" cannot be averaged, but the test was ordered, and a count
+    feature is about whether it was ordered. Counting only numeric results
+    understated labs_count:urine_dipstick roughly fivefold (225 of 1,288 rows)
+    and excluded 23,102 pre-index and 1,027 in-hospital results from every
+    count feature.
+    """
+    count_col = count_col or value_col
     results = []
     for agg, func in [("count", "count"), ("mean", "mean"), ("min", "min"), ("max", "max")]:
         df[f"__{agg}"] = f"{prefix}_{agg}:" + df[name_col]
         ct = pd.crosstab(
             index=df[id_col], columns=df[f"__{agg}"],
-            values=df[value_col], aggfunc=func,
+            values=df[count_col if agg == "count" else value_col], aggfunc=func,
         )
         results.append(ct)
     merged = results[0]
@@ -154,22 +165,41 @@ def _prepare_labs(labs_df, top_n, source_label):
     top = list(labs_df[name_col].value_counts().index)[:top_n]
     labs_df = labs_df[labs_df[name_col].isin(top)]
 
-    # Numeric filter via pd.to_numeric rather than the original string test.
+    labs_df = labs_df.copy()
+
+    # Two distinct quantities, deliberately kept apart.
     #
-    # The original was
-    #     x.replace(".", "", 1).replace("-", "", 1).isnumeric()
-    # which rejects anything str() renders in scientific notation. That was
-    # harmless while TEST_RSLT held raw strings, but harmonise_units now writes
-    # converted floats back into it, and a converted value can be small enough
-    # that str() gives "1e-05" -- silently dropping a valid measurement.
-    numeric = pd.to_numeric(labs_df["TEST_RSLT"], errors="coerce")
-    n_before = len(labs_df)
-    labs_df = labs_df[numeric.notna()].copy()
-    labs_df["result"] = numeric[numeric.notna()]
-    n_dropped = n_before - len(labs_df)
-    if n_dropped:
-        print(f"[ETL] {source_label}: dropped {n_dropped:,} row(s) with a "
-              f"non-numeric result")
+    #   result   the numeric value, NaN for a semi-quantitative or text result.
+    #            Feeds mean / min / max.
+    #   present  1 whenever ANY result was recorded, numeric or not. Feeds the
+    #            count aggregation, because a count is about whether the test
+    #            was ordered.
+    #
+    # The old behaviour dropped non-numeric rows outright, which understated
+    # labs_count:urine_dipstick roughly fivefold and excluded every text result
+    # from every count feature. config.COUNT_ANY_RESULT = False restores it.
+    if "value_harmonised" in labs_df.columns:
+        labs_df["result"] = pd.to_numeric(labs_df["value_harmonised"],
+                                          errors="coerce")
+    else:
+        labs_df["result"] = pd.to_numeric(labs_df["TEST_RSLT"], errors="coerce")
+
+    recorded = (labs_df["TEST_RSLT"].notna()
+                & (labs_df["TEST_RSLT"].astype(str).str.strip() != "")
+                & (labs_df["TEST_RSLT"].astype(str).str.strip().str.lower()
+                   != "nan"))
+
+    if getattr(config, "COUNT_ANY_RESULT", True):
+        labs_df["present"] = recorded.map({True: 1.0, False: float("nan")})
+    else:
+        labs_df["present"] = labs_df["result"]
+        labs_df = labs_df[labs_df["result"].notna()]
+
+    n_text = int((recorded & labs_df["result"].isna()).sum())
+    if n_text:
+        print(f"[ETL] {source_label}: {n_text:,} recorded result(s) are "
+              f"non-numeric; they count toward *_count features but not "
+              f"toward mean/min/max")
 
     labs_df["patient_id"] = labs_df["id"]
     labs_df["test_date"] = pd.to_datetime(labs_df["test_date"], errors="coerce")
@@ -396,7 +426,8 @@ def run_etl():
     index_labs = _prepare_labs(index_labs_all, config.TOP_LABS_IN_HOSPITAL, "in-hosp labs")
 
     index_labs_crosstab = _build_crosstab(
-        index_labs, "patient_id", "labs", "name", "result"
+        index_labs, "patient_id", "labs", "name", "result",
+        count_col="present",
     )
     index_labs_crosstab.to_csv(os.path.join(out_dir, "index_labs_crosstab.csv"))
     index_labs_crosstab = pd.read_csv(os.path.join(out_dir, "index_labs_crosstab.csv"))
@@ -431,7 +462,8 @@ def run_etl():
         pre_labs = _prepare_labs(pre_labs_all, config.TOP_LABS_PRE_INDEX, "pre-hosp labs")
 
         pre_labs_crosstab = _build_crosstab(
-            pre_labs, "patient_id", "pre-index_labs", "name", "result"
+            pre_labs, "patient_id", "pre-index_labs", "name", "result",
+            count_col="present",
         )
         pre_labs_crosstab.to_csv(os.path.join(out_dir, "pre_labs_crosstab.csv"))
         pre_labs_crosstab = pd.read_csv(os.path.join(out_dir, "pre_labs_crosstab.csv"))

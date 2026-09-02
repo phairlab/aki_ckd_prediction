@@ -407,7 +407,8 @@ NEVER_CONVERT = {"urate_urine", "creatinine_urine", "protein_urine",
 
 def harmonise_units(labs_df, entity_col="canonical_test",
                     unit_col="TEST_UOFM", value_col="TEST_RSLT",
-                    out_entity_col="canonical_test_unit", verbose=True):
+                    out_entity_col="canonical_test_unit",
+                    out_value_col="value_harmonised", verbose=True):
     """Put each entity on one unit; split or drop only when that is impossible.
 
     Four stages, in order.
@@ -422,8 +423,10 @@ def harmonise_units(labs_df, entity_col="canonical_test",
 
     2. CONVERT, for entities in LAB_UNIT_CONVERSIONS, into the canonical unit.
 
-    3. DROP rows whose unit is not in that entity's conversion table -- urate
-       reported in "%", for instance. Counted, never assumed.
+    3. NULL THE VALUE of rows whose unit is not in that entity's conversion
+       table -- urate reported in "%", for instance. The row is kept, because
+       the test was still ordered and count features are about ordering; it
+       just contributes no number.
 
     4. SPLIT what remains: an entity in NEVER_CONVERT, or an unlisted entity
        with several units. urate_urine is mmol/d (24-hour excretion) and
@@ -493,10 +496,17 @@ def harmonise_units(labs_df, entity_col="canonical_test",
                 df.loc[unit_rows, out_entity_col] = f"{entity}__{unit_slug(unit)}"
             report["split"][entity] = units
 
-    if drop_mask.any():
-        df = df[~drop_mask]
+    # Rows whose unit is not interpretable for their analyte get no numeric
+    # value, but they are NOT deleted: the test was still ordered, and
+    # count-type features are about whether it was ordered. mean/min/max
+    # simply skip them.
+    df.loc[drop_mask, "__value"] = float("nan")
 
-    df[value_col] = df["__value"]
+    # The harmonised number goes in its OWN column. Overwriting value_col here
+    # destroyed the original text, which is what the semi-quantitative dipstick
+    # results are -- and those are needed both by
+    # classify_single_dipstick_result and by the count features.
+    df[out_value_col] = df["__value"]
     df = df.drop(columns=["__unit", "__value"])
 
     if verbose:
