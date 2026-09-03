@@ -402,9 +402,25 @@ python src/analysis/equivalence.py \\
     --nri-csv "$REPORTS/nri_table5.csv" \\
     --output-dir "$REPORTS/equivalence"
 
+echo "=== Reclassification across the full threshold range (editor point 7b) ==="
+# Run rather than merely suggested. nri_all_thresholds.csv is what separates a
+# genuine reclassification difference from threshold-placement luck: with 286
+# events, a handful of patients crossing 0.20 moves NRI by about 0.01, so a
+# result that only exists at 0.20 is an artifact. Costs a few minutes.
+SWEEP="$REPORTS/threshold_sweep/run_nri_threshold_sweep.sh"
+if [[ -x "$SWEEP" || -f "$SWEEP" ]]; then
+    bash "$SWEEP"
+else
+    echo "  (not generated — run the analyses stage first)"
+fi
+
 echo
-echo "For reclassification across the full threshold range (editor point 7b), run:"
-echo "  $REPORTS/threshold_sweep/run_nri_threshold_sweep.sh"
+echo "Key outputs:"
+echo "  Table 4          $RESULTS/overlay_results/combined_metrics_formatted.tsv"
+echo "  Table A2.2       $RESULTS/overlay_results/bengio_correction_auroc_pvals.csv"
+echo "  Table 5          $REPORTS/nri_table5.csv"
+echo "  equivalence      $REPORTS/equivalence/"
+echo "  threshold sweep  $REPORTS/threshold_sweep/nri_by_threshold/nri_all_thresholds.csv"
 """
     path = os.path.join(reports, "run_evaluation.sh")
     with open(path, "w") as f:
