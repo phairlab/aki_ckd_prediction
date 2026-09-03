@@ -44,6 +44,7 @@ already produces.
 from __future__ import annotations
 
 import os
+import sys
 import json
 import glob
 
@@ -371,3 +372,112 @@ def run_equivalence_analysis(experiment_dirs, baseline_name, output_dir,
 
     print(f"[Equivalence] -> {csv_path}")
     return table
+
+
+# ---------------------------------------------------------------------------
+# Equivalence on net reclassification
+# ---------------------------------------------------------------------------
+# AUROC equivalence is a supporting analysis, not the manuscript's claim. The
+# abstract already concedes "small, non-significant gains in discrimination";
+# what it asserts is "no improvement in clinical decision-making for post-AKI
+# nephrology referral". The endpoint that carries that claim is net
+# reclassification at the referral threshold, so it needs its own equivalence
+# test against its own pre-specified margin.
+#
+# config.EQUIVALENCE_MARGIN_NRI = 0.05: a net reclassification of fewer than
+# five patients per hundred at the 20% threshold does not change nephrology
+# capacity planning.
+#
+# nri.py in the evaluation suite already produces a patient-level bootstrap CI
+# for the pooled NRI, so no new estimation is needed -- equivalence is read off
+# that interval. This function does not recompute NRI, deliberately: one
+# implementation of it exists, in the evaluation suite.
+
+
+def nri_equivalence(nri_csv, margin=None, output_dir=None, ci_level=0.95):
+    """Test whether each model's pooled NRI is equivalent to zero.
+
+    `nri_csv` is the --output_csv written by nri.py. Equivalence holds when the
+    bootstrap interval for the pooled NRI lies entirely inside +/- margin.
+    """
+    import config as _config
+
+    margin = margin if margin is not None else getattr(
+        _config, "EQUIVALENCE_MARGIN_NRI", 0.05)
+
+    if not os.path.exists(nri_csv):
+        raise FileNotFoundError(
+            f"{nri_csv} not found. Produce it first with nri.py in the "
+            f"evaluation suite -- see reports/run_evaluation.sh."
+        )
+
+    table = pd.read_csv(nri_csv)
+    required = {"model", "nri_pooled", "nri_ci_lo", "nri_ci_hi"}
+    missing = required - set(table.columns)
+    if missing:
+        raise ValueError(f"{nri_csv} is missing column(s) {sorted(missing)}")
+
+    print(f"\n{'=' * 70}\nEQUIVALENCE ON NET RECLASSIFICATION\n{'=' * 70}")
+    print(f"Pre-specified margin : +/- {margin}")
+    print("This is the manuscript's actual claim. AUROC equivalence supports it;")
+    print("reclassification at the referral threshold IS it.\n")
+
+    rows = []
+    for _, r in table.iterrows():
+        lo, hi = float(r["nri_ci_lo"]), float(r["nri_ci_hi"])
+        not_superior = hi < margin
+        not_inferior = lo > -margin
+        equivalent = not_superior and not_inferior
+        verdict = _verdict(equivalent, not_superior, not_inferior,
+                           float(r["nri_pooled"]), margin, lo, hi)
+
+        rows.append({
+            "model": r["model"],
+            "baseline": r.get("baseline"),
+            "threshold": r.get("threshold"),
+            "nri_pooled": float(r["nri_pooled"]),
+            "ci_lo": lo, "ci_hi": hi, "margin": margin,
+            "equivalent": equivalent,
+            "not_superior": not_superior,
+            "not_inferior": not_inferior,
+            "verdict": verdict,
+            "formatted": (f"{float(r['nri_pooled']):+.3f} "
+                          f"({int(ci_level * 100)}% CI {lo:+.3f} to {hi:+.3f})"),
+        })
+        print(f"  {str(r['model'])[:44]:<44s} {float(r['nri_pooled']):+.3f} "
+              f"[{lo:+.3f}, {hi:+.3f}]  {verdict}")
+
+    out = pd.DataFrame(rows)
+    n_eq = int(out["equivalent"].sum())
+    n_ns = int(out["not_superior"].sum())
+    print(f"\n  EQUIVALENT within +/- {margin} : {n_eq} of {len(out)}")
+    print(f"  NO SUPERIORITY shown          : {n_ns} of {len(out)}")
+    if n_ns == len(out):
+        print("\n  No model reclassifies patients meaningfully better than the")
+        print("  baseline at the referral threshold. That is the paper's claim,")
+        print("  now supported by rejecting a null of difference rather than by")
+        print("  failing to reject a null of no difference.")
+
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
+        path = os.path.join(output_dir, "equivalence_nri.csv")
+        out.to_csv(path, index=False)
+        print(f"\n[Equivalence] -> {path}")
+    return out
+
+
+if __name__ == "__main__":
+    import argparse
+
+    p = argparse.ArgumentParser(
+        description="Equivalence test on the pooled NRI produced by nri.py")
+    p.add_argument("--nri-csv", required=True,
+                   help="The --output_csv written by nri.py")
+    p.add_argument("--margin", type=float, default=None,
+                   help="Override config.EQUIVALENCE_MARGIN_NRI")
+    p.add_argument("--output-dir", default=None)
+    args = p.parse_args()
+
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                    "..", ".."))
+    nri_equivalence(args.nri_csv, args.margin, args.output_dir)

@@ -382,6 +382,12 @@ python nri.py \\
     --seed {config.RANDOM_SEED} \\
     --output_csv "$REPORTS/nri_table5.csv"
 
+echo "=== Equivalence on net reclassification (the manuscript's actual claim) ==="
+cd - >/dev/null
+python src/analysis/equivalence.py \\
+    --nri-csv "$REPORTS/nri_table5.csv" \\
+    --output-dir "$REPORTS/equivalence"
+
 echo
 echo "For reclassification across the full threshold range (editor point 7b), run:"
 echo "  $REPORTS/threshold_sweep/run_nri_threshold_sweep.sh"
