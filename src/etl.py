@@ -527,18 +527,18 @@ def run_etl():
         if pre_labs_all is not None:
             frames["pre-index"] = pre_labs_all
         try:
-            write_lab_normalization_report(frames, config.get_reports_dir())
+            write_lab_normalization_report(frames, config.get_etl_reports_dir())
         except Exception as exc:                                   # noqa: BLE001
             print(f"[ETL] Could not write the lab normalization audit: {exc}")
 
     # Column inventory, so Multimedia Appendix 3 regenerates from the run
     inventory = pd.DataFrame({"index": range(features.shape[1]),
                               "column": features.columns})
-    os.makedirs(config.get_reports_dir(), exist_ok=True)
-    inventory.to_csv(os.path.join(config.get_reports_dir(),
+    os.makedirs(config.get_etl_reports_dir(), exist_ok=True)
+    inventory.to_csv(os.path.join(config.get_etl_reports_dir(),
                                   "feature_inventory.csv"), index=False)
     print(f"[ETL] Feature inventory -> "
-          f"{os.path.join(config.get_reports_dir(), 'feature_inventory.csv')}")
+          f"{os.path.join(config.get_etl_reports_dir(), 'feature_inventory.csv')}")
 
     return features
 

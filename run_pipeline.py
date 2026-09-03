@@ -114,6 +114,11 @@ def parse_args():
                    help="Override the outcome for all experiments")
     p.add_argument("--skip-shap", action="store_true",
                    help="Skip out-of-fold SHAP (the slowest per-fold step)")
+    p.add_argument("--run-label", default=None,
+                   help="Subdirectory separating this run's results and reports "
+                        "from other runs. Defaults to the tuning profile, so "
+                        "--tuning fast and --tuning deep never overwrite each "
+                        "other. Use 'none' to write to the unlabelled root.")
     p.add_argument("--no-cache", action="store_true",
                    help="Recompute the scored cohort for every experiment "
                         "instead of caching it between them")
@@ -338,8 +343,17 @@ def emit_eval_commands(experiment_dirs, args, ordering_path):
     os.makedirs(reports, exist_ok=True)
 
     results_root = config.get_experiments_dir()
-    baseline = (config.NRI_BASELINE if config.NRI_BASELINE in experiment_dirs
-                else next(iter(experiment_dirs), None))
+    baseline = config.NRI_BASELINE
+    if baseline not in experiment_dirs:
+        fallback = next(iter(experiment_dirs), None)
+        print(f"\n  WARNING: the configured NRI baseline "
+              f"{config.NRI_BASELINE!r} is not among this run's experiments "
+              f"{sorted(experiment_dirs)}.")
+        print(f"  Falling back to {fallback!r}. Table 5 would then be computed "
+              f"against the WRONG baseline —")
+        print(f"  re-run including {config.NRI_BASELINE!r}, or edit the "
+              f"generated script before using it.\n")
+        baseline = fallback
     baseline_dir = experiment_dirs.get(baseline, "")
 
     script = f"""#!/usr/bin/env bash
@@ -412,6 +426,15 @@ def main():
         config.USE_SMOKE_DATA, config.USE_NONSENSE_DATA = False, True
     elif args.server:
         config.USE_SMOKE_DATA, config.USE_NONSENSE_DATA = False, False
+
+    # Set BEFORE anything resolves a path. Defaults to the tuning profile so two
+    # runs cannot silently overwrite each other's reports.
+    if args.run_label is not None:
+        config.RUN_LABEL = None if args.run_label.lower() == "none" else args.run_label
+    elif args.etl_only:
+        config.RUN_LABEL = None          # the ETL audit is not run-specific
+    else:
+        config.RUN_LABEL = args.tuning
 
     if args.albuminuria_upcr:
         config.ALBUMINURIA_INCLUDE_UPCR = True

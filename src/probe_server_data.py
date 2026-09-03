@@ -383,7 +383,7 @@ def main() -> None:
         config.USE_SMOKE_DATA, config.USE_NONSENSE_DATA = False, False
 
     raw_dir = args.raw_dir or config.get_raw_data_dir()
-    output_dir = args.output_dir or os.path.join(config.PROJECT_ROOT, "reports")
+    output_dir = args.output_dir or config.get_etl_reports_dir()
 
     print(f"\nAKI-CKD data probe")
     print(f"raw data : {raw_dir}")

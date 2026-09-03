@@ -115,16 +115,43 @@ def get_etl_output_dir():
     return SERVER_DATA_DIR
 
 
+# Subdirectory separating one run from another, normally the tuning profile.
+#
+# Without this, two runs of the same experiments were distinguishable only by
+# the timestamp in their fold_results directory name -- and reports/ was a
+# single directory, so a second run silently OVERWROTE the first run's
+# equivalence tables, competing-risk output, threshold sweep, ordering.json and
+# evaluation script. Comparing a fast run against a deep one was therefore
+# impossible: running the second destroyed the first.
+#
+# run_pipeline.py sets this to the tuning profile by default, so `--tuning fast`
+# and `--tuning deep` land in separate trees and can be compared. --run-label
+# overrides it.
+RUN_LABEL = None
+
+
+def _with_label(path):
+    return os.path.join(path, RUN_LABEL) if RUN_LABEL else path
+
+
 def get_experiments_dir():
     # Smoke runs are kept out of the paper results tree so a test run can never
     # be mistaken for, or picked up alongside, the reported experiments.
     if USE_SMOKE_DATA:
-        return os.path.join(PROJECT_ROOT, "experiments", "results", "smoke")
-    return os.path.join(PROJECT_ROOT, "experiments", "results", "paper")
+        return _with_label(os.path.join(PROJECT_ROOT, "experiments", "results", "smoke"))
+    return _with_label(os.path.join(PROJECT_ROOT, "experiments", "results", "paper"))
 
 
 def get_reports_dir():
-    """Manuscript-ready tables and figures land here."""
+    """Manuscript-ready tables and figures land here, one subtree per run."""
+    if USE_SMOKE_DATA:
+        return _with_label(os.path.join(PROJECT_ROOT, "reports", "smoke"))
+    return _with_label(os.path.join(PROJECT_ROOT, "reports"))
+
+
+def get_etl_reports_dir():
+    """Where the ETL audit goes: unlabelled, because it describes features.csv
+    rather than any one training run."""
     if USE_SMOKE_DATA:
         return os.path.join(PROJECT_ROOT, "reports", "smoke")
     return os.path.join(PROJECT_ROOT, "reports")
