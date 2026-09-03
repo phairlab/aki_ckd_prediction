@@ -80,7 +80,10 @@ for L in "${LABELS[@]}"; do
         done
     done
 
-    # Evaluation-suite overlay outputs (Tables 4 / A2.1 / A2.2, figure legends)
+    # Pre-recalibration pass (Table A2.1, Figure A2.1) lives under reports/,
+    # already picked up by the reports subtree copy above.
+
+    # Evaluation-suite overlay outputs (Tables 4 / A2.2, figure legends)
     if [[ -d "$RESULTS_ROOT/$L/overlay_results" ]]; then
         mkdir -p "$OUT/$RESULTS_ROOT/$L/overlay_results"
         find "$RESULTS_ROOT/$L/overlay_results" -maxdepth 1 -type f \

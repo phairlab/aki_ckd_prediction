@@ -373,7 +373,44 @@ REPORTS="{os.path.abspath(reports)}"
 
 cd "$EVAL_SUITE"
 
-echo "=== Core evaluation (Tables 4/A2.1, Figures 2-4, A2.1-A2.2) ==="
+# ---------------------------------------------------------------------------
+# PASS 1 of 2: WITHOUT recalibration.
+#
+# Table 4 reports a calibration slope both before and after recalibration, and
+# Table A2.1 is the entire pre-recalibration table -- neither can be filled
+# from a recalibrated run. Figure A2.1 is the pre-recalibration calibration
+# curve for the same reason.
+#
+# ldh_eval writes into --input_dir, so a second pass overwrites the first. The
+# raw pass therefore runs FIRST and its outputs are copied aside, leaving the
+# tree in the recalibrated state that everything downstream expects.
+# ---------------------------------------------------------------------------
+echo "=== Pass 1/2: pre-recalibration (Table A2.1, Figure A2.1) ==="
+python ldh_eval.py \\
+    --input_dir "$RESULTS" \\
+    --recurse \\
+    --threshold {config.PRIMARY_THRESHOLD} \\
+    --bengio-correction \\
+    --ordering "$ORDERING" \\
+    --bootstrap {config.N_BOOTSTRAP} \\
+    --ci-level {config.CI_LEVEL} \\
+    --seed {config.RANDOM_SEED}
+
+PRE="$REPORTS/pre_recalibration"
+mkdir -p "$PRE"
+cp -R "$RESULTS/overlay_results/." "$PRE/" 2>/dev/null || true
+for d in "$RESULTS"/*_fold_results; do
+    [ -d "$d" ] || continue
+    n=$(basename "$d")
+    mkdir -p "$PRE/$n"
+    for f in bootstrap_ci.json aggregate_metrics.json; do
+        [ -f "$d/$f" ] && cp "$d/$f" "$PRE/$n/"
+    done
+done
+echo "  pre-recalibration outputs -> $PRE"
+
+echo
+echo "=== Pass 2/2: recalibrated (Tables 4/5, Figures 2-4, A2.2) ==="
 python ldh_eval.py \\
     --input_dir "$RESULTS" \\
     --recurse \\
@@ -421,6 +458,7 @@ echo "  Table A2.2       $RESULTS/overlay_results/bengio_correction_auroc_pvals.
 echo "  Table 5          $REPORTS/nri_table5.csv"
 echo "  equivalence      $REPORTS/equivalence/"
 echo "  threshold sweep  $REPORTS/threshold_sweep/nri_by_threshold/nri_all_thresholds.csv"
+echo "  Table A2.1       $REPORTS/pre_recalibration/combined_metrics_formatted.tsv"
 """
     path = os.path.join(reports, "run_evaluation.sh")
     with open(path, "w") as f:
