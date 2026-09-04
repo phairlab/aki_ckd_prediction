@@ -337,6 +337,45 @@ def run_analyses_stage(args, experiment_dirs, ordering_path):
 # Handoff to the evaluation suite
 # ---------------------------------------------------------------------------
 
+def _generator_commit():
+    """Short hash of the commit that generated a script, or 'unknown'."""
+    import subprocess
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=config.PROJECT_ROOT, stderr=subprocess.DEVNULL,
+        ).decode().strip()
+    except Exception:                                          # noqa: BLE001
+        return "unknown"
+
+
+def _staleness_guard(commit):
+    """Shell snippet warning that a generated script predates the checkout.
+
+    Generated scripts are artifacts of a run, so `git pull` updates the
+    generator but NOT a script already on disk. That caused a silent failure:
+    an evaluation script written before the two-pass change looks identical at
+    a glance and simply omits half the analysis.
+    """
+    lines = [
+        'GENERATED_AT="%s"' % commit,
+        'CURRENT=$(git -C "%s" rev-parse --short HEAD 2>/dev/null || echo unknown)'
+        % config.PROJECT_ROOT,
+        'if [[ "$GENERATED_AT" != "unknown" && "$CURRENT" != "unknown" '
+        '&& "$GENERATED_AT" != "$CURRENT" ]]; then',
+        '    echo "############################################################" >&2',
+        '    echo "# WARNING: generated at $GENERATED_AT, checkout now $CURRENT." >&2',
+        '    echo "# This is a GENERATED artifact -- git pull did not update it," >&2',
+        '    echo "# so it may omit analyses added since. Regenerate with:" >&2',
+        '    echo "#   python run_pipeline.py --server --analyses-only --tuning <label>" >&2',
+        '    echo "# Continuing in 5s; Ctrl-C to stop." >&2',
+        '    echo "############################################################" >&2',
+        '    sleep 5',
+        'fi',
+    ]
+    return "\n".join(lines)
+
+
 def emit_eval_commands(experiment_dirs, args, ordering_path):
     """Write an ordering file and a runnable script for the evaluation suite."""
     reports = config.get_reports_dir()
@@ -365,6 +404,8 @@ def emit_eval_commands(experiment_dirs, args, ordering_path):
 # NRI comes from nri.py there -- this repository deliberately ships no second
 # implementation of either.
 set -euo pipefail
+
+{_staleness_guard(_generator_commit())}
 
 EVAL_SUITE="{args.eval_suite_dir}"
 RESULTS="{os.path.abspath(results_root)}"
